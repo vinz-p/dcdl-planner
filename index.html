@@ -3101,6 +3101,11 @@ function renderPullBannerCards(){
 
 
 window._initInProgress=true;
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  if(document.getElementById('bsm-overlay').classList.contains('active')){closeBSM();return;}
+  if(document.getElementById('champ-modal-overlay').classList.contains('active')){closeChampModal();return;}
+});
 loadSettings();
 (function(){
   const tc=document.getElementById('targetColor').value;
