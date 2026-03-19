@@ -92,7 +92,8 @@
   .pull-card-input:focus{border-color:var(--accent);}
   .pull-card-input::-webkit-inner-spin-button{display:none;}
   @media(max-width:600px){
-    #pull-banner-cards,#pull-regular-cards{grid-template-columns:repeat(2,1fr) !important;}
+    #pull-banner-cards{grid-template-columns:repeat(2,1fr) !important;}
+    #pull-regular-cards{grid-template-columns:repeat(3,1fr) !important;}
   }
   .batch-btn{flex:1;padding:14px 10px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:1.6rem;letter-spacing:3px;cursor:pointer;border-radius:6px;transition:all 0.2s;}
   .batch-btn.active{background:rgba(0,212,255,0.1);border-color:var(--accent);color:var(--accent);}
@@ -826,7 +827,7 @@
 
       <!-- OTHER MYTHICS -->
       <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);margin-bottom:8px;letter-spacing:1px;">OTHER MYTHICS</div>
-      <div id="pull-regular-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;"></div>
+      <div id="pull-regular-cards" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;"></div>
 
       <!-- LEGENDARY + EPIC -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
