@@ -1264,7 +1264,6 @@ function submitBatch(){
   }
 
   document.getElementById('shards').value=newShards;
-  autoUpdateStarLevel();
   // Decrement reverse anvils
   const revEl=document.getElementById('reverse-anvils');
   const revVal=parseInt(revEl.value)||0;
@@ -2735,9 +2734,7 @@ function autoSaveChamp(){
   // Sync to planner if this champ is currently selected there
   const plannerChampId=document.getElementById('champ-dropdown').value;
   if(plannerChampId===cmChampId){
-    const shardsEl=document.getElementById('shards');
-    if(shardsEl)shardsEl.value=sh;
-    saveState();
+    loadSelectedChampion();
   }
   populateChampDropdown();renderCollection();
 }
