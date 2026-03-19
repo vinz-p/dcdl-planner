@@ -1,0 +1,3138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCDL Bleed Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    /* DC Dark Knight palette */
+    --bg:#080b12;           /* near-black with blue undertone */
+    --panel:#080e18;        /* darker navy panel */
+    --border:#142030;       /* darker steel border */
+    --mythic:#d42b2b;       /* DC red — Superman/Flash */
+    --mythic-dim:#6b1515;
+    --legendary:#f0a500;    /* DC gold — WW/Aquaman */
+    --legendary-dim:#7a5200;
+    --epic:#4a5ab5;         /* DC blue — Superman/Batman */
+    --accent:#4fc3f7;       /* electric blue — lightning/energy */
+    --accent-dim:#0a3a52;
+    --text:#dce8f5;         /* cool white text */
+    --text-dim:#4a6080;
+    --green:#00c853;        /* Green Lantern green */
+    --highlighted:#7986cb; /* indigo — mystical/magic */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,195,247,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.04) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:24px 16px;width:100%;}
+  header{text-align:center;margin-bottom:32px;}
+  .title-line{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:4px;}
+  .title-line::before{content:'';height:2px;width:80px;background:linear-gradient(90deg,transparent,var(--legendary));}
+  .title-line::after{content:'';height:2px;width:80px;background:linear-gradient(90deg,var(--legendary),transparent);}
+  h1{font-family:'Oswald',sans-serif;font-size:clamp(2rem,8vw,3.5rem);letter-spacing:6px;color:var(--legendary);text-shadow:0 0 40px rgba(240,165,0,0.6),0 0 80px rgba(212,43,43,0.3);line-height:1;text-transform:uppercase;}
+  .subtitle{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-dim);letter-spacing:4px;text-transform:uppercase;opacity:0.7;}
+  .odds-strip{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+  .odds-pill{flex:1;min-width:120px;padding:10px 14px;border-radius:6px;border:1px solid;text-align:center;}
+  .odds-pill.mythic{border-color:var(--mythic-dim);background:rgba(var(--mythic-rgb,212,43,43),0.08);}
+  .odds-pill.legendary{border-color:var(--legendary-dim);background:rgba(240,165,0,0.06);}
+  .odds-pill.epic{border-color:#3a3060;background:rgba(74,90,181,0.08);}
+  .odds-pill .label{font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;opacity:0.7;margin-bottom:2px;}
+  .odds-pill.mythic .label{color:var(--mythic);}.odds-pill.legendary .label{color:var(--legendary);}.odds-pill.epic .label{color:var(--epic);}
+  .odds-pill .value{font-family:'Share Tech Mono',monospace;font-size:1.1rem;font-weight:bold;}
+  .odds-pill.mythic .value{color:var(--mythic);}.odds-pill.legendary .value{color:var(--legendary);}.odds-pill.epic .value{color:#9b8ee0;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
+  .panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--legendary),var(--accent),transparent);opacity:0.5;}
+  .panel-title{font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:16px;opacity:0.8;display:flex;align-items:center;justify-content:space-between;}
+  .input-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;gap:8px;}
+  .input-row:last-child{border-bottom:none;}
+  .input-label{font-size:0.95rem;font-weight:600;color:var(--text);flex:1;min-width:160px;}
+  .input-label small{display:block;font-size:0.7rem;font-weight:400;color:var(--text-dim);margin-top:2px;}
+  .number-input{display:flex;align-items:center;gap:8px;}
+  .btn-step{width:32px;height:32px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:1.2rem;cursor:pointer;border-radius:4px;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+  .btn-step:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  input[type=number]{width:70px;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:1.1rem;text-align:center;padding:6px;border-radius:4px;outline:none;}
+  input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(0,212,255,0.2);}
+  input[type=number]::-webkit-inner-spin-button{display:none;}
+  select{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;padding:6px 10px;border-radius:4px;outline:none;}
+  .scenario-tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .tab{flex:1;padding:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.2s;text-transform:uppercase;}
+  .tab.active{background:rgba(0,212,255,0.1);border-color:var(--accent);color:var(--accent);}
+  .results-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .result-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+  .result-card.highlight{border-color:var(--mythic);background:rgba(212,43,43,0.08);box-shadow:0 0 20px rgba(212,43,43,0.15);}
+  .result-card .card-label{font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;}
+  .result-card .card-value{font-family:'Oswald',sans-serif;font-size:2.4rem;line-height:1;color:var(--accent);text-shadow:0 0 20px rgba(0,212,255,0.3);}
+  .result-card.highlight .card-value{color:var(--mythic);text-shadow:0 0 20px rgba(232,65,58,0.4);}
+  .result-card .card-sub{font-size:0.75rem;color:var(--text-dim);margin-top:4px;}
+  .progress-bar-wrap{margin:6px 0 0;background:rgba(0,0,0,0.3);border-radius:4px;height:8px;overflow:hidden;border:1px solid var(--border);}
+  .progress-bar{height:100%;border-radius:0 4px 4px 0;transition:width 0.5s ease;margin-left:auto;display:block;}
+  .progress-label{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+  .warning{background:rgba(240,165,0,0.07);border:1px solid var(--legendary-dim);border-radius:8px;padding:12px 16px;font-size:0.85rem;color:var(--legendary);margin-bottom:16px;line-height:1.5;}
+  .shard-info{background:rgba(79,195,247,0.05);border:1px solid var(--accent-dim);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-dim);margin-top:0;margin-bottom:16px;line-height:1.6;}
+  .shard-info span{color:var(--accent);}
+
+  /* PULL CARDS */
+  .pull-card{background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:0;display:flex;flex-direction:column;align-items:center;overflow:hidden;transition:border-color 0.15s;}
+  .pull-card-limited{border-color:var(--mythic-dim);border-width:3px;}
+  .pull-card-highlighted{border-color:var(--border);}
+  .pull-card-mythic{border-color:rgba(212,43,43,0.15);}
+  .pull-card-legendary{border-color:var(--legendary-dim);}
+  .pull-card-portrait{width:100%;aspect-ratio:1;overflow:hidden;background:rgba(0,0,0,0.3);}
+  .pull-card-portrait img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+  .pull-card-fallback{display:flex;align-items:center;justify-content:center;}
+  .pull-card-name{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);padding:5px 6px 0;text-align:center;line-height:1.2;width:100%;}
+  .pull-card-sub{font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--text-dim);padding:2px 6px;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pull-card-counter{display:flex;align-items:center;justify-content:space-between;width:100%;padding:5px 6px 7px;gap:2px;}
+  .pull-card-btn{width:24px;height:24px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:1rem;cursor:pointer;border-radius:4px;transition:all 0.12s;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;}
+  .pull-card-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .pull-card-input{flex:1;min-width:0;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:1rem;text-align:center;padding:3px 2px;border-radius:4px;outline:none;}
+  .pull-card-input:focus{border-color:var(--accent);}
+  .pull-card-input::-webkit-inner-spin-button{display:none;}
+  @media(max-width:600px){
+    #pull-banner-cards,#pull-regular-cards{grid-template-columns:repeat(2,1fr) !important;}
+  }
+  .batch-btn{flex:1;padding:14px 10px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:1.6rem;letter-spacing:3px;cursor:pointer;border-radius:6px;transition:all 0.2s;}
+  .batch-btn.active{background:rgba(0,212,255,0.1);border-color:var(--accent);color:var(--accent);}
+  .log-input-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;gap:8px;}
+  .log-input-label{font-size:0.92rem;font-weight:600;flex:1;min-width:160px;}
+  .log-input-label small{display:block;font-size:0.68rem;font-weight:400;color:var(--text-dim);margin-top:2px;}
+  .log-btn{width:100%;padding:12px;background:rgba(0,212,255,0.08);border:1px solid var(--accent);color:var(--accent);font-family:'Oswald',sans-serif;font-size:1.1rem;letter-spacing:3px;cursor:pointer;border-radius:6px;transition:all 0.2s;}
+  .log-btn:hover:not(:disabled){background:rgba(0,212,255,0.15);}
+  .log-btn:disabled{opacity:0.3;cursor:not-allowed;}
+  /* HISTORY */
+  .history-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+  .history-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:rgba(0,0,0,0.15);font-size:0.82rem;}
+  .hi-batch{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);min-width:52px;}
+  .hi-pulls{flex:1;color:var(--text);line-height:1.4;}
+  .hi-shards{font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--green);white-space:nowrap;}
+  .hi-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1rem;padding:0 2px;transition:color 0.15s;}
+  .hi-del:hover{color:var(--mythic);}
+  .history-empty{text-align:center;padding:20px;color:var(--text-dim);font-size:0.82rem;font-family:'Share Tech Mono',monospace;}
+  .danger-btn{background:rgba(0,212,255,0.08);border:1px solid var(--accent-dim);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;transition:all 0.15s;letter-spacing:1px;}
+  .danger-btn:hover{background:rgba(0,212,255,0.15);}
+  footer{text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;margin-top:24px;opacity:0.5;}
+  @media(max-width:600px){
+  /* Layout */
+  .container{padding:16px 12px;}
+  h1{font-size:clamp(1.6rem,10vw,2.8rem);letter-spacing:3px;}
+
+  /* Odds strip — stack into 2 columns */
+  .odds-strip{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .odds-pill{min-width:0;}
+
+  /* Results grid — single column */
+  .results-grid{grid-template-columns:1fr;}
+  .result-card .card-value{font-size:2rem;}
+
+
+  /* Settings 2-col — stack vertically */
+  .settings-row-2col{flex-direction:column;gap:0;}
+  .settings-col{padding-right:0 !important;padding-left:0 !important;padding-bottom:14px;}
+  .settings-col-divider{width:100%;height:1px;margin:0;}
+
+  /* Color + star picker — wrap gracefully */
+  .level-picker-row{flex-wrap:wrap;gap:6px;}
+  .color-picker{flex-wrap:wrap;}
+  .cp-btn{width:28px;height:28px;font-size:0.58rem;}
+  .cp-btn.cp-none{height:28px;font-size:0.65rem;}
+  .sp-star{font-size:1rem;}
+
+  /* Non-lim dot picker — wrap */
+  .nonlim-dot-picker{flex-wrap:wrap;gap:4px;}
+  .nl-dot{width:32px;height:32px;font-size:0.72rem;}
+
+  /* Batch buttons */
+  .batch-btns{gap:4px;}
+  .batch-btn{font-size:1.1rem;padding:8px;}
+
+  /* Pull logger inputs */
+  .log-input-row{flex-direction:column;align-items:flex-start;gap:6px;}
+  .log-input-label{min-width:0;}
+
+  /* Number inputs — smaller on mobile */
+  input[type=number]{width:60px;font-size:1rem;}
+  .btn-step{width:28px;height:28px;font-size:1.1rem;}
+
+  /* Audit tracker grid */
+  .audit-row{font-size:0.78rem;}
+
+  /* Scenario tabs */
+  .scenario-tabs{flex-direction:column;gap:4px;}
+  .tab{font-size:0.8rem;padding:10px;}
+
+  /* Breakdown rows — allow wrapping */
+  .breakdown-row{flex-wrap:wrap;gap:4px;}
+  .history-item{flex-wrap:wrap;}
+  .hi-pulls{min-width:100%;order:2;}
+  .hi-batch{order:1;}
+  .hi-shards{order:3;}
+  .hi-del{order:4;margin-left:auto;}
+
+  /* Progress panel */
+  .progress-label{font-size:0.62rem;}
+}
+
+  /* COLOR PICKER */
+  .color-picker{display:flex;gap:4px;align-items:center;}
+  .cp-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;flex-shrink:0;}
+  .cp-btn:hover{transform:scale(1.15);}
+  .cp-btn.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.25);transform:scale(1.15);}
+  .cp-btn.cp-none{background:rgba(255,255,255,0.08);border-color:var(--border);color:var(--text-dim);border-radius:5px;width:auto;padding:0 6px;font-size:0.65rem;height:24px;}
+  .cp-btn.cp-none.active{border-color:var(--accent);color:var(--accent);box-shadow:none;}
+  /* STAR PICKER */
+  .star-picker{display:flex;gap:1px;align-items:center;}
+  .sp-star{font-size:1.15rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
+  .sp-star:hover,.sp-star.active{opacity:1;filter:none;}
+  .sp-star.active{transform:scale(1.08);}
+  /* COMBINED COLOR+STAR ROW */
+  .level-picker-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:nowrap;}
+
+  /* SETTINGS 2-COL */
+  .settings-row-2col{display:flex;gap:0;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .settings-col{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .settings-col:first-child{padding-right:16px;}
+  .settings-col:last-child{padding-left:16px;}
+  .settings-col-divider{width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;}
+  .settings-col-label{font-size:0.82rem;font-weight:600;color:var(--text-dim);letter-spacing:0.5px;}
+  .settings-col-label small{display:block;font-size:0.65rem;font-weight:400;color:var(--text-dim);opacity:0.7;margin-top:2px;}
+
+  /* NON-LIM DOT PICKER */
+  .nonlim-dot-picker{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+  .nl-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:rgba(255,255,255,0.05);
+    color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.7rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all 0.12s;}
+  .nl-dot:hover{border-color:var(--green);color:var(--green);}
+  .nl-dot.active{background:rgba(46,204,113,0.15);border-color:var(--green);color:var(--green);}
+  .nl-dot.dot-max{border-radius:6px;width:auto;padding:0 7px;font-size:0.68rem;}
+  .nl-dot.dot-max.active{background:rgba(232,65,58,0.2);border-color:var(--mythic);color:var(--mythic);}
+  .nl-dot.dot-max:hover{border-color:var(--mythic);color:var(--mythic);}
+
+  /* ODDS BLOCK */
+  .odds-block{margin-bottom:24px;}
+  .odds-row-label{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;}
+  .odds-strip{display:flex;gap:8px;flex-wrap:wrap;}
+  .odds-pill{flex:1;min-width:100px;padding:10px 14px;border-radius:6px;border:1px solid;text-align:center;}
+  .odds-pill.mythic{border-color:var(--mythic-dim);background:rgba(var(--mythic-rgb,212,43,43),0.08);}
+  .odds-pill.legendary{border-color:var(--legendary-dim);background:rgba(240,165,0,0.06);}
+  .odds-pill.epic{border-color:#3a3060;background:rgba(74,90,181,0.08);}
+  .odds-pill.highlighted{border-color:#6b3fa0;background:rgba(192,132,252,0.08);}
+  .odds-pill.regular-mythic{border-color:#1a3a4a;background:rgba(0,212,255,0.05);}
+  .odds-pill .label{font-size:0.62rem;letter-spacing:1.5px;text-transform:uppercase;opacity:0.7;margin-bottom:2px;}
+  .odds-pill.mythic .label{color:var(--mythic);}
+  .odds-pill.legendary .label{color:var(--legendary);}
+  .odds-pill.epic .label{color:var(--epic);}
+  .odds-pill.highlighted .label{color:var(--highlighted);}
+  .odds-pill.regular-mythic .label{color:var(--accent);}
+  .odds-pill .value{font-family:'Share Tech Mono',monospace;font-size:1.1rem;font-weight:bold;}
+  .odds-pill.mythic .value{color:var(--mythic);}
+  .odds-pill.legendary .value{color:var(--legendary);}
+  .odds-pill.epic .value{color:#9b8ee0;}
+  .odds-pill.highlighted .value{color:var(--highlighted);}
+  .odds-pill.regular-mythic .value{color:var(--accent);}
+  .odds-combined{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);margin-top:3px;}
+
+  /* AUDIT TRACKER */
+  .audit-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px 12px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.88rem;}
+  .audit-row:last-child{border-bottom:none;}
+  .audit-label{color:var(--text);font-weight:600;}
+  .audit-actual{font-family:'Share Tech Mono',monospace;font-size:0.82rem;color:var(--text);text-align:right;}
+  .audit-expected{font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--text-dim);text-align:right;}
+  .audit-badge{font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:3px 7px;border-radius:10px;text-align:center;white-space:nowrap;}
+  .audit-badge.lucky{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
+  .audit-badge.unlucky{background:rgba(232,65,58,0.15);color:var(--mythic);border:1px solid rgba(232,65,58,0.3);}
+  .audit-badge.neutral{background:rgba(255,255,255,0.06);color:var(--text-dim);border:1px solid var(--border);}
+  .audit-bar-wrap{grid-column:1/-1;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:-4px;overflow:hidden;}
+  .audit-bar{height:100%;border-radius:2px;transition:width 0.4s ease;}
+
+  /* NOTE BANNER */
+  .note-banner{border-radius:6px;padding:8px 14px;font-size:0.78rem;margin-bottom:12px;line-height:1.5;}
+  .note-banner.nb-expected{background:rgba(79,195,247,0.05);border:1px solid rgba(79,195,247,0.2);color:rgba(79,195,247,0.8);}
+  .note-banner.nb-worst{background:rgba(240,165,0,0.06);border:1px solid rgba(240,165,0,0.25);color:rgba(240,165,0,0.85);}
+
+
+  /* ── CHAMPION SELECTOR ────────────────────────────────────────────────── */
+  .champ-manage-btn{padding:8px 14px;background:rgba(79,195,247,0.06);border:1px solid var(--accent-dim);
+    color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;
+    letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;white-space:nowrap;}
+  .champ-manage-btn:hover{background:rgba(79,195,247,0.14);}
+
+  /* ── COLLECTION PAGE ─────────────────────────────────────────────────── */
+  .coll-header{max-width:900px;margin:0 auto 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .coll-back{padding:8px 16px;background:rgba(79,195,247,0.06);border:1px solid var(--accent-dim);
+    color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:700;
+    letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;}
+  .coll-back:hover{background:rgba(79,195,247,0.14);}
+  .coll-title{font-family:'Oswald',sans-serif;font-size:1.6rem;color:var(--legendary);
+    letter-spacing:4px;text-transform:uppercase;}
+  .coll-stats{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);
+    letter-spacing:1px;margin-left:auto;}
+  .coll-stats span{color:var(--accent);}
+  .coll-search-row{max-width:900px;margin:0 auto 16px;display:flex;gap:8px;flex-wrap:wrap;}
+  .coll-search{flex:1;min-width:180px;background:rgba(0,0,0,0.3);border:1px solid var(--border);
+    color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;
+    padding:8px 12px;border-radius:6px;outline:none;}
+  .coll-search:focus{border-color:var(--accent);}
+  .coll-filter{padding:7px 12px;border:1px solid var(--border);background:transparent;
+    color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.62rem;
+    letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;}
+  .coll-filter.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
+  .coll-check{padding:7px 12px;border:1px solid var(--border);background:transparent;
+    color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.62rem;
+    letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;}
+  .coll-check.active{background:rgba(79,195,247,0.08);}
+  .coll-check.active::before{content:'✓ ';font-size:0.7rem;}
+  .coll-grid{max-width:900px;margin:0 auto;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .coll-card{background:linear-gradient(160deg,rgba(12,20,34,0.98),rgba(8,14,24,1));
+    border:1px solid var(--border);border-radius:10px;
+    padding:0;cursor:pointer;
+    transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease;
+    position:relative;overflow:hidden;}
+  .coll-card::after{content:'';position:absolute;inset:0;border-radius:10px;
+    background:linear-gradient(160deg,rgba(255,255,255,0.03),transparent 60%);
+    pointer-events:none;}
+  .coll-card:hover{transform:translateY(-3px);border-color:rgba(79,195,247,0.4);}
+  .coll-card:hover .cc-img{transform:scale(1.07);}
+  .coll-card.owned:hover{border-color:rgba(79,195,247,0.6);}
+  .coll-card.maxed:hover{border-color:rgba(240,165,0,0.7);}
+  .cc-img-wrap{width:100%;aspect-ratio:1;overflow:hidden;background:rgba(0,0,0,0.3);position:relative;}
+  .cc-img{width:100%;height:100%;object-fit:cover;object-position:top center;
+    transition:transform 0.25s ease;display:block;}
+  /* gradient overlay on portrait */
+  .cc-img-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;
+    background:linear-gradient(to top,rgba(8,14,24,0.85),transparent);pointer-events:none;}
+  .cc-img-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-size:2rem;font-weight:700;color:rgba(255,255,255,0.2);}
+  .cc-info{padding:8px 8px 6px;}
+  .cc-name{font-family:'Barlow Condensed',sans-serif;font-size:0.92rem;font-weight:700;
+    color:var(--text);margin-bottom:2px;line-height:1.2;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-status{font-family:'Share Tech Mono',monospace;font-size:0.56rem;color:var(--text-dim);}
+  .cc-shards{font-family:'Share Tech Mono',monospace;font-size:0.56rem;color:var(--green);margin-top:1px;}
+  .cc-badge{position:absolute;top:7px;right:7px;font-family:'Share Tech Mono',monospace;
+    font-size:0.5rem;letter-spacing:1px;padding:2px 6px;border-radius:3px;
+    backdrop-filter:blur(6px);font-weight:700;text-transform:uppercase;}
+  .cc-badge.owned-b{background:rgba(79,195,247,0.18);color:var(--accent);
+    border:1px solid rgba(79,195,247,0.4);text-shadow:0 0 8px rgba(79,195,247,0.5);}
+  .cc-badge.maxed-b{background:rgba(240,165,0,0.18);color:var(--legendary);
+    border:1px solid rgba(240,165,0,0.5);text-shadow:0 0 8px rgba(240,165,0,0.5);}
+
+  /* ── SORT BUTTONS ─────────────────────────────────────────────────────── */
+  .coll-sort{padding:5px 10px;border:1px solid var(--border);background:transparent;
+    color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.58rem;
+    letter-spacing:1px;cursor:pointer;border-radius:5px;transition:all 0.15s;text-transform:uppercase;}
+  .coll-sort:hover{border-color:var(--accent);color:var(--text);}
+  .coll-sort.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
+
+  /* ── PROGRESS BAR ON CARD ─────────────────────────────────────────────── */
+  .cc-prog-wrap{margin:6px 8px 8px;height:5px;border-radius:3px;overflow:hidden;position:relative;background:rgba(255,255,255,0.04);}
+  .cc-prog-bar{height:100%;border-radius:3px;transition:width 0.4s ease;}
+  .cc-prog-label{display:flex;justify-content:space-between;align-items:center;
+    margin:0 8px 2px;font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--text-dim);letter-spacing:0.5px;}
+
+  /* ── RARITY ACCENT STRIP ──────────────────────────────────────────────── */
+  .cc-rarity-strip{height:2px;width:100%;flex-shrink:0;}
+
+  /* ── CHAMPION EDIT MODAL ─────────────────────────────────────────────── */
+  .champ-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;
+    display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .champ-modal-overlay.active{display:flex;}
+  .champ-modal{background:var(--panel);border:1px solid var(--accent);border-radius:12px;
+    padding:24px;max-width:380px;width:90%;position:relative;
+    box-shadow:0 0 40px rgba(79,195,247,0.15);}
+  .champ-modal-title{font-family:'Oswald',sans-serif;font-size:1.3rem;color:var(--accent);
+    margin-bottom:18px;letter-spacing:2px;}
+  .champ-modal-row{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px;}
+  .champ-modal-label{font-size:0.9rem;color:var(--text);flex:1;}
+  .champ-modal-close{position:absolute;top:12px;right:14px;background:none;border:none;
+    color:var(--text-dim);cursor:pointer;font-size:1.3rem;padding:4px;line-height:1;}
+  .champ-modal-close:hover{color:var(--mythic);}
+  .champ-modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:space-between;}
+  .cmb{padding:9px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;
+    font-size:0.88rem;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid;transition:all 0.15s;}
+  .cmb.save{background:rgba(79,195,247,0.08);border-color:var(--accent);color:var(--accent);}
+  .cmb.save:hover{background:rgba(79,195,247,0.18);}
+  .cmb.load{background:rgba(0,200,83,0.08);border-color:var(--green);color:var(--green);}
+  .cmb.load:hover{background:rgba(0,200,83,0.18);}
+  .cmb.clr{background:rgba(212,43,43,0.06);border-color:var(--mythic-dim);color:var(--mythic);}
+  .cmb.clr:hover{background:rgba(212,43,43,0.16);}
+  @media(max-width:600px){
+    .coll-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+    .cc-name{font-size:0.78rem;}
+    .cc-info{padding:6px 6px 4px;}
+  }
+{width:100%;padding:5px 8px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all 0.15s;text-align:left;}
+  .consume-btn.next{background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.3);color:var(--accent);}
+  .consume-btn.next:hover{background:rgba(79,195,247,0.18);}
+  .consume-btn.max{background:rgba(240,165,0,0.07);border:1px solid rgba(240,165,0,0.3);color:var(--legendary);}
+  .consume-btn.max:hover{background:rgba(240,165,0,0.16);}
+
+  
+  /* NOTE BANNER */
+  .note-banner{border-radius:6px;padding:8px 14px;font-size:0.78rem;margin-bottom:12px;line-height:1.5;}
+  .note-banner.nb-expected{background:rgba(79,195,247,0.05);border:1px solid rgba(79,195,247,0.2);color:rgba(79,195,247,0.8);}
+  .note-banner.nb-worst{background:rgba(240,165,0,0.06);border:1px solid rgba(240,165,0,0.25);color:rgba(240,165,0,0.85);}
+  /* MILESTONE MARKERS */
+  #milestone-markers{position:relative;}
+  /* CONSUME BUTTONS */
+  .consume-btn{width:100%;padding:5px 8px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all 0.15s;text-align:left;}
+  .consume-btn.next{background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.3);color:var(--accent);}
+  .consume-btn.next:hover{background:rgba(79,195,247,0.18);}
+  .consume-btn.max{background:rgba(240,165,0,0.07);border:1px solid rgba(240,165,0,0.3);color:var(--legendary);}
+  .consume-btn.max:hover{background:rgba(240,165,0,0.16);}
+  .champ-manage-btn{padding:8px 14px;background:rgba(79,195,247,0.06);border:1px solid var(--accent-dim);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;white-space:nowrap;}
+  .champ-manage-btn:hover{background:rgba(79,195,247,0.14);}
+  /* COLLECTION PAGE */
+  .coll-header{max-width:900px;margin:0 auto 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .coll-back{padding:8px 16px;background:rgba(79,195,247,0.06);border:1px solid var(--accent-dim);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;}
+  .coll-back:hover{background:rgba(79,195,247,0.14);}
+  .coll-title{font-family:'Oswald',sans-serif;font-size:1.6rem;color:var(--legendary);letter-spacing:4px;text-transform:uppercase;}
+  .coll-stats{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;margin-left:auto;}
+  .coll-stats span{color:var(--accent);}
+  .coll-search-row{max-width:900px;margin:0 auto 16px;display:flex;gap:8px;flex-wrap:wrap;}
+  .coll-search{flex:1;min-width:180px;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;padding:8px 12px;border-radius:6px;outline:none;}
+  .coll-search:focus{border-color:var(--accent);}
+  .coll-filter{padding:7px 12px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.15s;}
+  .coll-filter.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
+  .cc-paywall-badge{position:absolute;top:7px;left:7px;font-family:'Share Tech Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:3px;backdrop-filter:blur(6px);background:rgba(240,165,0,0.22);color:var(--legendary);border:1px solid rgba(240,165,0,0.55);}
+  .champ-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .champ-modal-overlay.active{display:flex;}
+  .champ-modal{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:24px;max-width:380px;width:90%;position:relative;box-shadow:0 0 40px rgba(79,195,247,0.15);}
+  .champ-modal-title{font-family:'Oswald',sans-serif;font-size:1.3rem;color:var(--accent);margin-bottom:0;letter-spacing:2px;}
+  .champ-modal-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px;}
+  .champ-modal-label{font-size:0.9rem;color:var(--text);flex:1;}
+  .champ-modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1.3rem;padding:4px;line-height:1;}
+  .champ-modal-close:hover{color:var(--mythic);}
+  .champ-modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:space-between;}
+  .cmb{padding:9px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid;transition:all 0.15s;}
+  .cmb.save{background:rgba(79,195,247,0.08);border-color:var(--accent);color:var(--accent);}
+  .cmb.save:hover{background:rgba(79,195,247,0.18);}
+  .cmb.load{background:rgba(0,200,83,0.08);border-color:var(--green);color:var(--green);}
+  .cmb.load:hover{background:rgba(0,200,83,0.18);}
+  .cmb.clr{background:rgba(212,43,43,0.06);border-color:var(--mythic-dim);color:var(--mythic);}
+  .cmb.clr:hover{background:rgba(212,43,43,0.16);}
+  /* SETTINGS */
+  .settings-row-2col{display:flex;gap:0;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .settings-col{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .settings-col:first-child{padding-right:16px;}
+  .settings-col:last-child{padding-left:16px;}
+  .settings-col-divider{width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;}
+  .settings-col-label{font-size:0.82rem;font-weight:600;color:var(--text-dim);letter-spacing:0.5px;}
+  .settings-col-label small{display:block;font-size:0.65rem;font-weight:400;color:var(--text-dim);opacity:0.7;margin-top:2px;}
+  /* NON-LIM DOT PICKER */
+  .nonlim-dot-picker{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+  .nl-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.12s;}
+  .nl-dot:hover{border-color:var(--green);color:var(--green);}
+  .nl-dot.active{background:rgba(46,204,113,0.15);border-color:var(--green);color:var(--green);}
+  .nl-dot.dot-max{border-radius:6px;width:auto;padding:0 7px;font-size:0.68rem;}
+  .nl-dot.dot-max.active{background:rgba(232,65,58,0.2);border-color:var(--mythic);color:var(--mythic);}
+  .nl-dot.dot-max:hover{border-color:var(--mythic);color:var(--mythic);}
+  /* COLOR PICKER */
+  .color-picker{display:flex;gap:4px;align-items:center;}
+  .cp-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;flex-shrink:0;}
+  .cp-btn:hover{transform:scale(1.15);}
+  .cp-btn.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.25);transform:scale(1.15);}
+  .cp-btn.cp-none{background:rgba(255,255,255,0.08);border-color:var(--border);color:var(--text-dim);border-radius:5px;width:auto;padding:0 6px;font-size:0.65rem;height:24px;}
+  .cp-btn.cp-none.active{border-color:var(--accent);color:var(--accent);box-shadow:none;}
+  /* STAR PICKER */
+  .star-picker{display:flex;gap:1px;align-items:center;}
+  .sp-star{font-size:1.15rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
+  .champ-modal .sp-star{font-size:1.4rem;padding:3px;}
+  .sp-star:hover,.sp-star.active{opacity:1;filter:none;}
+  .sp-star.active{transform:scale(1.08);}
+  .level-picker-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:nowrap;}
+  /* ODDS BLOCK */
+  .odds-block{margin-bottom:24px;}
+  .odds-row-label{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;}
+  .odds-pill.highlighted{border-color:#6b3fa0;background:rgba(192,132,252,0.08);}
+  .odds-pill.regular-mythic{border-color:#1a3a4a;background:rgba(0,212,255,0.05);}
+  .odds-pill .label{font-size:0.62rem;letter-spacing:1.5px;text-transform:uppercase;opacity:0.7;margin-bottom:2px;}
+  .odds-pill.highlighted .label{color:var(--highlighted);}
+  .odds-pill.regular-mythic .label{color:var(--accent);}
+  .odds-pill.highlighted .value{color:var(--highlighted);}
+  .odds-pill.regular-mythic .value{color:var(--accent);}
+  .odds-combined{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);margin-top:3px;}
+  /* AUDIT */
+  .audit-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px 12px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.88rem;}
+  .audit-row:last-child{border-bottom:none;}
+  .audit-actual{font-family:'Share Tech Mono',monospace;font-size:0.82rem;color:var(--text);text-align:right;}
+  .audit-expected{font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--text-dim);text-align:right;}
+  .audit-badge{font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:3px 7px;border-radius:10px;text-align:center;white-space:nowrap;}
+  .audit-badge.lucky{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
+  .audit-badge.unlucky{background:rgba(232,65,58,0.15);color:var(--mythic);border:1px solid rgba(232,65,58,0.3);}
+  .audit-badge.neutral{background:rgba(255,255,255,0.06);color:var(--text-dim);border:1px solid var(--border);}
+  .audit-bar-wrap{grid-column:1/-1;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:-4px;overflow:hidden;}
+  .audit-bar{height:100%;border-radius:2px;transition:width 0.4s ease;}
+  @media(max-width:600px){
+    .coll-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+  }
+
+  /* ── BLEED BANNER ───────────────────────────────────────────────────────── */
+  .bleed-banner-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
+  .bleed-banner-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--mythic),var(--legendary),transparent);opacity:0.6;}
+  .bleed-banner-title{font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:3px;
+    color:var(--mythic);text-transform:uppercase;margin-bottom:14px;opacity:0.9;}
+  .banner-tab{padding:3px 10px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:0.9rem;letter-spacing:2px;cursor:pointer;border-radius:4px;transition:all 0.15s;}
+  .banner-tab.active{background:rgba(212,43,43,0.12);border-color:var(--mythic);color:var(--mythic);}
+  .banner-tab:hover:not(.active){border-color:var(--text-dim);color:var(--text);}
+  .bleed-banner-slots{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+  .banner-slot{display:flex;flex-direction:column;align-items:center;
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;
+    transition:all 0.15s;background:rgba(0,0,0,0.2);position:relative;}
+  .banner-slot:hover{border-color:var(--accent);background:rgba(79,195,247,0.05);}
+  .banner-slot.active{border-color:var(--mythic);background:rgba(212,43,43,0.08);
+    box-shadow:0 0 12px rgba(212,43,43,0.2);}
+  .banner-slot.limited{border-color:var(--mythic-dim);border-width:3px;}
+  .banner-slot.limited.active{border-color:var(--mythic);border-width:3px;box-shadow:0 0 18px rgba(212,43,43,0.4);}
+  .bs-type{font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:2px;
+    text-transform:uppercase;padding:4px 6px;width:100%;text-align:center;}
+  .banner-slot.limited .bs-type{color:var(--mythic);background:rgba(212,43,43,0.08);}
+  .banner-slot.highlighted .bs-type{color:var(--mythic);background:rgba(212,43,43,0.06);}
+  .bs-img-wrap{width:100%;aspect-ratio:1;overflow:hidden;background:rgba(0,0,0,0.3);}
+  .bs-img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
+  .bs-img-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-size:1.6rem;font-weight:700;color:rgba(255,255,255,0.25);}
+  .bs-info{padding:7px 8px;width:100%;}
+  .bs-name{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;
+    color:var(--text);line-height:1.2;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bs-meta{font-family:'Share Tech Mono',monospace;font-size:0.52rem;color:var(--text-dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bs-empty{display:flex;align-items:center;justify-content:center;height:60px;
+    color:var(--text-dim);font-size:0.7rem;font-family:'Share Tech Mono',monospace;
+    letter-spacing:1px;opacity:0.5;width:100%;}
+
+  /* Banner select modal */
+  .bsm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9000;
+    display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+  .bsm-overlay.active{display:flex;}
+  .bsm-box{background:var(--panel);border:1px solid var(--accent);border-radius:12px;
+    padding:20px;max-width:480px;width:calc(100% - 32px);margin:auto;position:relative;overflow:hidden;}
+  .bsm-title{font-family:'Oswald',sans-serif;font-size:1.2rem;color:var(--accent);
+    letter-spacing:2px;margin-bottom:14px;}
+  .bsm-search{width:100%;padding:8px 10px;background:rgba(0,0,0,0.3);border:1px solid var(--border);
+    color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;
+    border-radius:6px;outline:none;margin-bottom:10px;}
+  .bsm-search:focus{border-color:var(--accent);}
+  .bsm-list{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;overflow-x:hidden;}
+  .bsm-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);
+    border-radius:6px;cursor:pointer;transition:all 0.12s;min-width:0;}
+  .bsm-item:hover{border-color:var(--accent);background:rgba(79,195,247,0.06);}
+  .bsm-item-thumb{width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;
+    background:rgba(255,255,255,0.05);}
+  .bsm-item-thumb img{width:100%;height:100%;object-fit:cover;object-position:top;}
+  .bsm-item-info{flex:1;overflow:hidden;}
+  .bsm-item-name{font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;
+    color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bsm-item-meta{font-family:'Share Tech Mono',monospace;font-size:0.52rem;color:var(--text-dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bsm-clear{width:100%;padding:8px;border:1px solid var(--mythic-dim);background:transparent;
+    color:var(--mythic);font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:700;
+    cursor:pointer;border-radius:6px;margin-top:10px;transition:all 0.15s;letter-spacing:1px;}
+  .bsm-clear:hover{background:rgba(212,43,43,0.1);}
+  .bsm-close{position:absolute;top:12px;right:14px;background:none;border:none;
+    color:var(--text-dim);cursor:pointer;font-size:1.3rem;padding:4px;line-height:1;}
+  .bsm-close:hover{color:var(--mythic);}
+  @media(max-width:600px){
+    .bleed-banner-slots{grid-template-columns:1fr 1fr;}
+
+  }
+}
+
+  /* ── IN-TILE ODDS ────────────────────────────────────────────────────────── */
+  .bs-odds{font-family:'Share Tech Mono',monospace;font-size:0.68rem;font-weight:700;
+    padding:4px 8px 6px;width:100%;display:flex;align-items:baseline;justify-content:center;gap:5px;}
+  .bs-odds .bs-odds-pct{font-size:0.88rem;font-weight:700;}
+  .bs-odds .bs-odds-per{font-size:0.55rem;opacity:0.65;}
+  .banner-slot.limited .bs-odds{color:var(--mythic);}
+  .banner-slot.highlighted .bs-odds{color:var(--mythic);}
+
+
+  /* ── MAIN NAV TABS ──────────────────────────────────────────────────────── */
+  .main-nav{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:sticky;top:8px;z-index:100;background:var(--bg);}
+  .main-nav-btn{flex:1;padding:12px 8px;border:none;background:transparent;color:var(--text-dim);font-family:'Oswald',sans-serif;font-size:0.85rem;letter-spacing:2px;cursor:pointer;transition:all 0.18s;text-transform:uppercase;border-right:1px solid var(--border);}
+  .main-nav-btn:last-child{border-right:none;}
+  .main-nav-btn.active{background:rgba(212,43,43,0.1);color:var(--mythic);}
+  .main-nav-btn:hover:not(.active){background:rgba(255,255,255,0.04);color:var(--text);}
+  .main-section{display:none;}
+  .main-section.active{display:block;}
+
+  /* ── CHAMPION SELECTOR ──────────────────────────────────────────────────── */
+  .cs-selected{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:rgba(0,0,0,0.2);transition:all 0.15s;margin-bottom:12px;}
+  .cs-selected:hover{border-color:var(--accent);background:rgba(79,195,247,0.04);}
+  .cs-portrait{width:44px;height:44px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.05);flex-shrink:0;}
+  .cs-portrait img,.cs-portrait-fallback{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+  .cs-portrait-fallback{display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:1rem;color:rgba(255,255,255,0.3);}
+  .cs-info{flex:1;}
+  .cs-name{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text);}
+  .cs-meta{font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-dim);margin-top:2px;}
+  .cs-prompt{font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--text-dim);letter-spacing:1px;}
+  .cs-chevron{color:var(--text-dim);font-size:0.8rem;flex-shrink:0;}
+  .cs-dropdown{background:var(--panel);border:1px solid var(--accent-dim);border-radius:8px;margin-bottom:12px;overflow:hidden;display:none;}
+  .cs-dropdown.open{display:block;}
+  .cs-search{width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;outline:none;}
+  .cs-search:focus{background:rgba(0,0,0,0.5);}
+  .cs-list{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;}
+  .cs-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background 0.1s;border-bottom:1px solid rgba(255,255,255,0.03);}
+  .cs-item:last-child{border-bottom:none;}
+  .cs-item:hover{background:rgba(79,195,247,0.06);}
+  .cs-item.selected{background:rgba(79,195,247,0.1);}
+  .cs-item-thumb{width:32px;height:32px;border-radius:4px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,0.05);}
+  .cs-item-thumb img{width:100%;height:100%;object-fit:cover;object-position:top;}
+  .cs-item-name{font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;color:var(--text);}
+  .cs-item-meta{font-family:'Share Tech Mono',monospace;font-size:0.52rem;color:var(--text-dim);}
+
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="title-line"><h1>DCDL BLEED PLANNER</h1></div>
+    <div class="subtitle">Anvil Calculator · Collection Manager</div>
+  </header>
+
+  <!-- MAIN NAV -->
+  <nav class="main-nav">
+    <button class="main-nav-btn active" onclick="switchSection('planner')" id="nav-planner">&#9654; Progress Planner</button>
+    <button class="main-nav-btn" onclick="switchSection('banner')" id="nav-banner">&#9889; Bleed Banner</button>
+    <button class="main-nav-btn" onclick="switchSection('collection')" id="nav-collection">&#9776; Collection</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: PROGRESS PLANNER                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="main-section active" id="section-planner">
+
+    <!-- CHAMPION SELECTOR -->
+    <input type="hidden" id="champ-dropdown" value="">
+    <div class="panel">
+      <div class="panel-title">SELECT CHAMPION</div>
+      <div class="cs-selected" id="cs-selected-btn" onclick="toggleChampDropdown()">
+        <div class="cs-portrait" id="cs-portrait"><div class="cs-portrait-fallback">?</div></div>
+        <div class="cs-info">
+          <div class="cs-name" id="cs-name-label">Choose a champion</div>
+          <div class="cs-meta" id="cs-meta-label">Select to begin planning</div>
+        </div>
+        <div class="cs-chevron" id="cs-chevron">▼</div>
+      </div>
+      <div class="cs-dropdown" id="cs-dropdown">
+        <input class="cs-search" type="text" id="cs-search" placeholder="Search champion..." oninput="renderCCSList()">
+        <div class="cs-list" id="cs-list"></div>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="panel" id="progress-panel" style="display:none;">
+      <div class="panel-title" style="margin-bottom:6px;"><span>SHARD PROGRESS TO GOAL</span></div>
+      <div id="progress-route" style="font-size:0.72rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:8px;letter-spacing:1px;"></div>
+      <div id="static-progress-label" class="progress-label" style="margin-bottom:6px;"></div>
+      <div style="position:relative;">
+        <div class="progress-bar-wrap" style="margin-bottom:0;"><div id="static-progress-bar" class="progress-bar" style="width:0%"></div></div>
+        <div id="milestone-markers" style="position:relative;height:20px;margin-top:2px;"></div>
+      </div>
+      <div id="logged-shards-note" style="margin-top:8px;font-size:0.72rem;color:var(--green);font-family:'Share Tech Mono',monospace;display:none;"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="planner-settings-panel" style="display:none;">
+      <div class="panel-title">CALCULATOR SETTINGS</div>
+      <!-- Current level — display only, loaded from collection -->
+      <div class="settings-row-2col">
+        <div class="settings-col">
+          <div class="settings-col-label">Current Level</div>
+          <div id="planner-current-level" style="font-family:'Share Tech Mono',monospace;font-size:0.88rem;margin-top:6px;min-height:20px;color:var(--text-dim);">—</div>
+          <div id="ownedShardLabel" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--text-dim);margin-top:4px;min-height:16px;"></div>
+          <!-- Hidden inputs still needed for calculate() -->
+          <input type="hidden" id="ownedColor" value="none">
+          <input type="hidden" id="ownedStar" value="1">
+        </div>
+        <div class="settings-col-divider"></div>
+        <div class="settings-col">
+          <div class="settings-col-label">Target Level</div>
+          <div class="level-picker-row">
+            <div class="color-picker" id="targetColorPicker"></div>
+            <div class="star-picker" id="targetStarPicker"></div>
+          </div>
+          <input type="hidden" id="targetColor" value="red">
+          <input type="hidden" id="targetStar" value="5">
+          <div id="shardTargetLabel" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--accent);margin-top:4px;min-height:16px;"></div>
+        </div>
+      </div>
+      <!-- Shards owned -->
+      <div class="settings-row-2col" style="border-bottom:none;padding-bottom:0;">
+        <div class="settings-col">
+          <div class="settings-col-label">Shards Owned</div>
+          <div style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <div class="number-input" style="flex-shrink:0;">
+              <button class="btn-step" onclick="step('shards',-5)">&#8722;</button>
+              <input type="number" id="shards" value="0" min="0" max="9999" oninput="calculate()">
+              <button class="btn-step" onclick="step('shards',5)">+</button>
+            </div>
+            <div id="consume-btns" style="flex:1;display:none;flex-direction:column;gap:5px;min-width:0;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENARIO + RESULTS -->
+    <div id="goal-reached-banner" style="display:none;margin-bottom:16px;"></div>
+    <div class="scenario-tabs" style="display:none;">
+      <button class="tab active" onclick="setScenario('expected')" id="tab-expected">Expected</button>
+      <button class="tab" onclick="setScenario('guaranteed')" id="tab-guaranteed">Worst Case (Guarantees Only)</button>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: BLEED BANNER                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="main-section" id="section-banner">
+
+    <!-- BLEED BANNER -->
+    <div class="bleed-banner-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="bleed-banner-title" style="margin-bottom:0;">&#9889; Bleed Banner</div>
+          <button id="banner-tab-0" class="banner-tab active" onclick="switchBanner(0)">Banner 1</button>
+          <button id="banner-tab-1" class="banner-tab" onclick="switchBanner(1)">Banner 2</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="banner-reset-btn" class="champ-manage-btn" onclick="resetActiveBanner()" style="font-size:0.78rem;padding:5px 12px;border-color:var(--mythic-dim);color:var(--mythic);background:rgba(212,43,43,0.05);">&#10005; Reset</button>
+        </div>
+      </div>
+      <div class="bleed-banner-slots">
+        <div class="banner-slot limited" id="bs-limited" onclick="openBannerSlot('limited')">
+          <div class="bs-type">Limited</div>
+          <div class="bs-img-wrap" id="bs-limited-img"><div class="bs-empty">Tap to set</div></div>
+          <div class="bs-info" id="bs-limited-info" style="display:none;">
+            <div class="bs-name" id="bs-limited-name"></div>
+            <div class="bs-meta" id="bs-limited-meta"></div>
+          </div>
+        </div>
+        <div class="banner-slot highlighted" id="bs-hl-0" onclick="openBannerSlot('hl',0)">
+          <div class="bs-type">Highlighted</div>
+          <div class="bs-img-wrap" id="bs-hl-0-img"><div class="bs-empty">Tap to set</div></div>
+          <div class="bs-info" id="bs-hl-0-info" style="display:none;">
+            <div class="bs-name" id="bs-hl-0-name"></div>
+            <div class="bs-meta" id="bs-hl-0-meta"></div>
+          </div>
+        </div>
+        <div class="banner-slot highlighted" id="bs-hl-1" onclick="openBannerSlot('hl',1)">
+          <div class="bs-type">Highlighted</div>
+          <div class="bs-img-wrap" id="bs-hl-1-img"><div class="bs-empty">Tap to set</div></div>
+          <div class="bs-info" id="bs-hl-1-info" style="display:none;">
+            <div class="bs-name" id="bs-hl-1-name"></div>
+            <div class="bs-meta" id="bs-hl-1-meta"></div>
+          </div>
+        </div>
+        <div class="banner-slot highlighted" id="bs-hl-2" onclick="openBannerSlot('hl',2)">
+          <div class="bs-type">Highlighted</div>
+          <div class="bs-img-wrap" id="bs-hl-2-img"><div class="bs-empty">Tap to set</div></div>
+          <div class="bs-info" id="bs-hl-2-info" style="display:none;">
+            <div class="bs-name" id="bs-hl-2-name"></div>
+            <div class="bs-meta" id="bs-hl-2-meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HIGHLIGHTED MYTHICS PULLED -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;">Highlighted Mythics Pulled</div>
+            <div class="nonlim-dot-picker" id="nonlimDotPicker"></div>
+            <input type="hidden" id="nonlimpulled" value="0">
+          </div>
+          <div style="font-size:0.68rem;color:var(--text-dim);line-height:1.5;text-align:right;">
+            0–5: <span style="color:var(--green);">~2.5 avg</span> &nbsp;&middot;&nbsp;
+            6+: <span style="color:var(--text-dim);">~0.825 avg</span> <span style="opacity:0.6;">(33%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BASE ODDS FOOTER -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="text-align:center;padding:6px 4px;border-radius:5px;border:1px solid rgba(212,43,43,0.3);background:rgba(212,43,43,0.05);">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;letter-spacing:1px;color:var(--mythic);opacity:0.7;text-transform:uppercase;margin-bottom:2px;">Other Mythic</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.82rem;font-weight:700;color:var(--mythic);">1.41%</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:1px;">per pull</div>
+        </div>
+        <div style="text-align:center;padding:6px 4px;border-radius:5px;border:1px solid rgba(240,165,0,0.25);background:rgba(240,165,0,0.04);">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;letter-spacing:1px;color:var(--legendary);opacity:0.7;text-transform:uppercase;margin-bottom:2px;">Legendary</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.82rem;font-weight:700;color:var(--legendary);">17.79%</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:1px;">per pull</div>
+        </div>
+        <div style="text-align:center;padding:6px 4px;border-radius:5px;border:1px solid rgba(74,90,181,0.3);background:rgba(74,90,181,0.05);">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;letter-spacing:1px;color:#9b8ee0;opacity:0.7;text-transform:uppercase;margin-bottom:2px;">Epic</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.82rem;font-weight:700;color:#9b8ee0;">78.4%</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--text-dim);margin-top:1px;">per pull</div>
+        </div>
+      </div>
+
+      <!-- ANVIL RESERVE -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--accent);text-transform:uppercase;white-space:nowrap;">Anvil Reserve</div>
+          <div class="number-input">
+            <button class="btn-step" onclick="stepReverse(-10)">&#8722;</button>
+            <input type="number" id="reverse-anvils" value="0" min="0" max="99999" oninput="calcReverse();calculate();" style="width:90px;">
+            <button class="btn-step" onclick="stepReverse(10)">+</button>
+          </div>
+          <div id="reverse-reach" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;line-height:1.6;flex:1;min-width:160px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT TRACKER -->
+    <div class="panel" id="audit-panel" style="display:none;">
+      <div class="panel-title">ODDS AUDIT TRACKER</div>
+      <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:14px;line-height:1.5;">
+        Comparing your logged pulls against expected odds (3.84% Mythic rate). <span style="color:var(--green);">Green = above average luck</span>, <span style="color:var(--mythic);">Red = below average luck</span>. Based on pull counts only — not shard amounts.
+      </div>
+      <div id="streak-indicator" style="display:none;margin-bottom:14px;"></div>
+      <div id="audit-content"></div>
+    </div>
+
+    <!-- PULL LOGGER -->
+    <div class="panel">
+      <div class="panel-title">PULL LOGGER</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);margin-bottom:10px;letter-spacing:1px;">BATCH SIZE</div>
+      <div class="batch-btns" style="margin-bottom:20px;display:flex;gap:8px;">
+        <button class="batch-btn" onclick="setBatch(1)" id="bb-1">x1</button>
+        <button class="batch-btn" onclick="setBatch(10)" id="bb-10">x10</button>
+        <button class="batch-btn active" onclick="setBatch(50)" id="bb-50">x50</button>
+      </div>
+
+      <!-- BANNER CHAMPIONS -->
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);margin-bottom:8px;letter-spacing:1px;">BANNER CHAMPIONS</div>
+      <div id="pull-banner-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;"></div>
+
+      <!-- OTHER MYTHICS -->
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);margin-bottom:8px;letter-spacing:1px;">OTHER MYTHICS</div>
+      <div id="pull-regular-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;"></div>
+
+      <!-- LEGENDARY + EPIC -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+        <div class="pull-card pull-card-mythic">
+          <div class="pull-card-portrait pull-card-fallback" style="background:rgba(212,43,43,0.10);">
+            <span style="font-size:1.4rem;color:var(--mythic);">⚙</span>
+          </div>
+          <div class="pull-card-name" style="color:var(--mythic);">Mythic Legacy Piece</div>
+          <div class="pull-card-sub">counts as Mythic pull</div>
+          <div class="pull-card-counter">
+            <button class="pull-card-btn" onclick="stepLog('mlp-count',-1)">−</button>
+            <input type="number" id="mlp-count" value="0" min="0" oninput="onLogChange()" class="pull-card-input">
+            <button class="pull-card-btn" onclick="stepLog('mlp-count',1)">+</button>
+          </div>
+        </div>
+        <div class="pull-card pull-card-legendary">
+          <div class="pull-card-portrait pull-card-fallback" style="background:rgba(240,165,0,0.10);">
+            <span style="font-size:1.4rem;color:var(--legendary);">★</span>
+          </div>
+          <div class="pull-card-name" style="color:var(--legendary);">Legendary</div>
+          <div class="pull-card-sub">Champion or Legacy Piece</div>
+          <div class="pull-card-counter">
+            <button class="pull-card-btn" onclick="stepLog('le-count',-1)">−</button>
+            <input type="number" id="le-count" value="0" min="0" oninput="onLogChange()" class="pull-card-input">
+            <button class="pull-card-btn" onclick="stepLog('le-count',1)">+</button>
+          </div>
+        </div>
+        <div class="pull-card" style="opacity:0.6;">
+          <div class="pull-card-portrait pull-card-fallback" style="background:rgba(74,90,181,0.10);">
+            <span style="font-size:1.4rem;color:#9b8ee0;">◆</span>
+          </div>
+          <div class="pull-card-name" style="color:#9b8ee0;">Epic</div>
+          <div class="pull-card-sub">auto-calculated</div>
+          <div class="pull-card-counter" style="justify-content:center;">
+            <span id="epic-display" style="font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:#9b8ee0;">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BONUS SHARDS + SUBMIT -->
+      <div class="log-input-row" style="border-bottom:none;margin-bottom:10px;">
+        <div class="log-input-label" style="color:var(--text);display:flex;align-items:center;gap:8px;">
+          <div id="bonus-shards-thumb" style="width:32px;height:32px;border-radius:5px;overflow:hidden;background:rgba(212,43,43,0.1);border:1px solid var(--mythic-dim);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--mythic);">?</div>
+          <div>Bonus Shards<small style="display:block;color:var(--text-dim);">Featured Mystic+ shards from highlighted pulls</small></div>
+        </div>
+        <div class="number-input">
+          <button class="btn-step" onclick="stepLog('batch-shards',-1)">&#8722;</button>
+          <input type="number" id="batch-shards" value="0" min="0" max="999" oninput="onLogChange()">
+          <button class="btn-step" onclick="stepLog('batch-shards',1)">+</button>
+        </div>
+      </div>
+      <div id="log-validation" style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;margin:0 0 10px;display:none;"></div>
+      <button class="log-btn" id="log-submit-btn" onclick="submitBatch()">LOG PULLS</button>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel">
+      <div class="panel-title"><span>PULL HISTORY</span><div style="display:flex;gap:6px;"><button class="danger-btn" onclick="clearPullHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear History</button><button class="danger-btn" onclick="copyShareSummary()" id="share-btn" style="border-color:var(--accent-dim);color:var(--accent);background:rgba(79,195,247,0.06);">Copy Summary</button></div></div>
+      <div class="history-list" id="history-list"><div class="history-empty">No pulls logged yet</div></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: COLLECTION                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="main-section" id="section-collection">
+    <div class="panel" style="padding-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="panel-title" style="margin-bottom:0;">CHAMPION COLLECTION</div>
+        <div id="coll-stats" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;"></div>
+      </div>
+      <!-- Row 1: Search | Paywall | Rarity filters (checkbox — multi-select) -->
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <input class="coll-search" type="text" placeholder="Search champion..." id="coll-search" oninput="renderCollection()" style="flex:2;min-width:140px;">
+        <button class="coll-check" id="cf-paywall" onclick="toggleCollRarity('paywall',this)" style="color:var(--legendary);border-color:rgba(240,165,0,0.4);">$ Paywall</button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <button class="coll-check" id="cf-iconic" onclick="toggleCollRarity('iconic',this)" style="color:#c084fc;border-color:#6b21a8;">Iconic</button>
+        <button class="coll-check" id="cf-limited" onclick="toggleCollRarity('limited',this)" style="color:var(--mythic);border-color:var(--mythic-dim);">Limited</button>
+        <button class="coll-check" id="cf-mythic" onclick="toggleCollRarity('mythic',this)" style="color:#e8413a;border-color:#6b1515;">Mythic</button>
+        <button class="coll-check" id="cf-legendary" onclick="toggleCollRarity('legendary',this)" style="color:var(--legendary);border-color:var(--legendary-dim);">Legendary</button>
+      </div>
+      <!-- Row 2: Ownership filters (radio — single-select, All default) -->
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <button class="coll-filter active" id="co-all" onclick="setCollOwnership('all',this)">All</button>
+        <button class="coll-filter" id="co-owned" onclick="setCollOwnership('owned',this)">Owned</button>
+        <button class="coll-filter" id="co-not-owned" onclick="setCollOwnership('not-owned',this)">Not Owned</button>
+        <button class="coll-filter" id="co-levelable" onclick="setCollOwnership('levelable',this)">Can Be Leveled</button>
+      </div>
+      <!-- Row 3: Sort -->
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Sort:</span>
+        <button class="coll-sort active" id="sort-rarity" onclick="setCollSort('rarity',this)">Rarity</button>
+        <button class="coll-sort" id="sort-name" onclick="setCollSort('name',this)">Name</button>
+        <button class="coll-sort" id="sort-progress" onclick="setCollSort('progress',this)">Level</button>
+        <button class="coll-sort" id="sort-shards" onclick="setCollSort('shards',this)">Shards</button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <button class="coll-sort" id="sort-asc" onclick="setCollDir('asc',this)" title="Ascending">↑</button>
+        <button class="coll-sort active" id="sort-desc" onclick="setCollDir('desc',this)" title="Descending">↓</button>
+      </div>
+      <div class="coll-grid" id="coll-grid"></div>
+    </div>
+  </div>
+
+  <footer>DCDL BLEED PLANNER · FOR REFERENCE ONLY</footer>
+</div>
+
+<!-- CHAMPION EDIT MODAL -->
+<div class="champ-modal-overlay" id="champ-modal-overlay" onclick="if(event.target===this)closeChampModal()">
+  <div class="champ-modal">
+    <button class="champ-modal-close" onclick="closeChampModal()">&#x2715;</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <img id="champ-modal-portrait" src="" alt="" style="width:56px;height:56px;border-radius:8px;object-fit:cover;object-position:top;border:1px solid var(--border);display:none;">
+      <div>
+        <div class="champ-modal-title" id="champ-modal-title">Champion</div>
+        <div id="champ-modal-meta" style="margin-top:4px;"></div>
+      </div>
+    </div>
+    <div class="champ-modal-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;width:100%;">
+        <div class="champ-modal-label" style="white-space:nowrap;">Current Level</div>
+        <div class="color-picker" id="cmColorPicker"></div>
+        <div></div><!-- spacer keeps stars in column 2 -->
+        <div class="star-picker" id="cmStarPicker"></div>
+        <div></div>
+        <div id="cm-level-label" style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-dim);min-height:14px;"></div>
+      </div>
+      <input type="hidden" id="cm-color" value="none">
+      <input type="hidden" id="cm-star" value="1">
+    </div>
+    <div id="cm-paywall-badge" style="display:none;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--legendary);letter-spacing:1px;margin-bottom:8px;">⚠ PAYWALL — not obtainable via Anvil pulls</div>
+    <!-- CONSUME BUTTONS -->
+    <div id="cm-consume-btns" style="display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+    <div class="champ-modal-row" id="cm-rarity-row" style="display:none;">
+      <div class="champ-modal-label">Rarity<small style="font-size:0.65rem;color:var(--text-dim);">Legendary base → upgradeable to Mythic</small></div>
+      <select id="cm-rarity-select" onchange="autoSaveChamp()" style="background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;padding:6px 10px;border-radius:4px;outline:none;">
+        <option value="Legendary">Legendary</option>
+        <option value="Mythic">Mythic (upgraded)</option>
+      </select>
+    </div>
+    <div class="champ-modal-row" id="cm-shards-row">
+      <div class="champ-modal-label">Shards Owned</div>
+      <div class="number-input">
+        <button class="btn-step" onclick="stepCM(-5)">&#8722;</button>
+        <input type="number" id="cm-shards" value="0" min="0" max="9999" oninput="renderCMConsumeButtons();autoSaveChamp()">
+        <button class="btn-step" onclick="stepCM(5)">+</button>
+      </div>
+    </div>
+    <div class="champ-modal-actions">
+      <button class="cmb clr" id="cm-clear-btn" onclick="clearChamp()">Clear Data</button>
+    </div>
+  </div>
+</div>
+
+<script>/* v3 */
+const CHAMP_IMGS={
+  // Limited Mythic
+  'superman':         'https://static.wikia.nocookie.net/ddl/images/0/0a/Superman_head.png/revision/latest/scale-to-width-down/100?cb=20250510095525',
+  'martian_manhunter':'https://static.wikia.nocookie.net/ddl/images/4/4c/Martian_Manhunter_Icon.png/revision/latest/scale-to-width-down/100?cb=20250601132316',
+  'nightwing':        'https://static.wikia.nocookie.net/ddl/images/4/4d/Nightwing_Icon.png/revision/latest/scale-to-width-down/100?cb=20250601132232',
+  'deathstroke':      'https://static.wikia.nocookie.net/ddl/images/9/9f/Deathstroke_head.png/revision/latest/scale-to-width-down/100?cb=20250510084201',
+  'zatanna':          'https://static.wikia.nocookie.net/ddl/images/b/b1/Zatanna_head.png/revision/latest/scale-to-width-down/100?cb=20250510095814',
+  'constantine':      'https://static.wikia.nocookie.net/ddl/images/3/32/Constantine_head.png/revision/latest/scale-to-width-down/100?cb=20250510083952',
+  'scarecrow':        'https://static.wikia.nocookie.net/ddl/images/4/46/Scarecrow_head.png/revision/latest/scale-to-width-down/100?cb=20250510095253',
+  'sinestro':         'https://static.wikia.nocookie.net/ddl/images/f/f6/Sinestro_head.png/revision/latest/scale-to-width-down/100?cb=20250510095423',
+  'starfire':         'https://static.wikia.nocookie.net/ddl/images/c/c5/Starfire_head.png/revision/latest/scale-to-width-down/100?cb=20250724072719',
+  'superboy':         'https://static.wikia.nocookie.net/ddl/images/5/5e/Superboy_Head.png/revision/latest/scale-to-width-down/100?cb=20250724072750',
+  'hippolyta':        'https://static.wikia.nocookie.net/ddl/images/a/a2/Queen_Hippolyta_Icon.png/revision/latest/scale-to-width-down/100?cb=20250921095041',
+  'lobo':             'https://static.wikia.nocookie.net/ddl/images/3/3f/Lobo_Icon.png/revision/latest/scale-to-width-down/100?cb=20260128210057',
+  'hawkgirl':         'https://static.wikia.nocookie.net/ddl/images/f/f2/Hawkgirl.png/revision/latest/scale-to-width-down/100?cb=20250510084633',
+  'artemis':          'https://static.wikia.nocookie.net/ddl/images/6/67/Artemis_Icon.png/revision/latest/scale-to-width-down/100?cb=20260128205417',
+  'rasalghul':        'https://static.wikia.nocookie.net/ddl/images/4/46/Ra%27s_al_Ghul_head.png/revision/latest/scale-to-width-down/100?cb=20250819194315',
+  'supergirl':        'https://static.wikia.nocookie.net/ddl/images/9/94/Supergirl_head.png/revision/latest/scale-to-width-down/100?cb=20250724072817',
+  'wally_west':       'https://static.wikia.nocookie.net/ddl/images/8/80/Wally_West_Icon.png/revision/latest/scale-to-width-down/100?cb=20260215104757',
+  'swamp_thing':      'https://static.wikia.nocookie.net/ddl/images/1/19/Swamp_Thing_Head.png/revision/latest/scale-to-width-down/100?cb=20251023184409',
+  'riddler':          'https://static.wikia.nocookie.net/ddl/images/a/ad/The_Riddler_Icon.png/revision/latest/scale-to-width-down/100?cb=20251122091508',
+  'joker':            'https://static.wikia.nocookie.net/ddl/images/5/59/Joker_head.png/revision/latest/scale-to-width-down/100?cb=20250510085952',
+  // Mythic
+  'arsenal':          'https://static.wikia.nocookie.net/ddl/images/1/11/Arsenal_Icon.png/revision/latest/scale-to-width-down/100?cb=20250621075643',
+  'aquaman':          'https://static.wikia.nocookie.net/ddl/images/6/66/Aquaman_Head.png/revision/latest/scale-to-width-down/100?cb=20250510083026',
+  'batgirl':          'https://static.wikia.nocookie.net/ddl/images/9/90/Batgirl_Head.png/revision/latest/scale-to-width-down/100?cb=20250510083316',
+  'batman':           'https://static.wikia.nocookie.net/ddl/images/4/48/Batman_head.png/revision/latest/scale-to-width-down/100?cb=20250510083341',
+  'bane':             'https://static.wikia.nocookie.net/ddl/images/c/c3/Bane_head.png/revision/latest/scale-to-width-down/100?cb=20250510083200',
+  'black_canary':     'https://static.wikia.nocookie.net/ddl/images/2/2a/Black_Canary_head.png/revision/latest/scale-to-width-down/100?cb=20250510083617',
+  'cyborg':           'https://static.wikia.nocookie.net/ddl/images/0/07/Cyborg_head.png/revision/latest/scale-to-width-down/100?cb=20250510084105',
+  'deadshot':         'https://static.wikia.nocookie.net/ddl/images/5/53/Deadshot_head.png/revision/latest/scale-to-width-down/100?cb=20250510084132',
+  'doctor_fate':      'https://static.wikia.nocookie.net/ddl/images/c/cc/Doctor_Fate_head.png/revision/latest/scale-to-width-down/100?cb=20250510084231',
+  'flash':            'https://static.wikia.nocookie.net/ddl/images/d/d5/The_Flash_head.png/revision/latest/scale-to-width-down/100?cb=20250510084301',
+  'green_lantern':    'https://static.wikia.nocookie.net/ddl/images/1/1b/Green_Lantern_head.png/revision/latest/scale-to-width-down/100?cb=20250510084442',
+  'harley_quinn':     'https://static.wikia.nocookie.net/ddl/images/e/ed/Harley_Quinn_head.png/revision/latest/scale-to-width-down/100?cb=20250510084603',
+  'krypto':           'https://static.wikia.nocookie.net/ddl/images/a/ab/Krypto_head.png/revision/latest/scale-to-width-down/100?cb=20250724072257',
+  'lex_luthor':       'https://static.wikia.nocookie.net/ddl/images/a/a4/Lex_Luthor_head.png/revision/latest/scale-to-width-down/100?cb=20250510090047',
+  'penguin':          'https://static.wikia.nocookie.net/ddl/images/3/33/Penguin_head.png/revision/latest/scale-to-width-down/100?cb=20250510094929',
+  'poison_ivy':       'https://static.wikia.nocookie.net/ddl/images/1/11/Poison_Ivy_head.png/revision/latest/scale-to-width-down/100?cb=20250510094959',
+  'raven':            'https://static.wikia.nocookie.net/ddl/images/d/dd/Raven_head.png/revision/latest/scale-to-width-down/100?cb=20250510095037',
+  'red_robin':        'https://static.wikia.nocookie.net/ddl/images/0/0d/Red_Robin_Head.png/revision/latest/scale-to-width-down/100?cb=20250510095145',
+  'robin':            'https://static.wikia.nocookie.net/ddl/images/2/25/Robin_head.png/revision/latest/scale-to-width-down/100?cb=20250510095218',
+  'shazam':           'https://static.wikia.nocookie.net/ddl/images/6/65/Shazam_head.png/revision/latest/scale-to-width-down/100?cb=20250510095317',
+  'stargirl':         'https://static.wikia.nocookie.net/ddl/images/0/01/Stargirl_head.png/revision/latest/scale-to-width-down/100?cb=20250510095457',
+  'talia':            'https://static.wikia.nocookie.net/ddl/images/e/e0/Talia_al_Ghul_head.png/revision/latest/scale-to-width-down/100?cb=20250819194357',
+  'two_face':         'https://static.wikia.nocookie.net/ddl/images/a/a6/Two-Face_head.png/revision/latest/scale-to-width-down/100?cb=20250510095652',
+  'wonder_girl':      'https://static.wikia.nocookie.net/ddl/images/2/2c/Wonder_Girl_Head.png/revision/latest/scale-to-width-down/100?cb=20251108114907',
+  // Legendary
+  'atom':             'https://static.wikia.nocookie.net/ddl/images/1/12/Atom_Head.png/revision/latest/scale-to-width-down/100?cb=20250510083101',
+  'black_adam':       'https://static.wikia.nocookie.net/ddl/images/a/ae/Black_Adam_head.png/revision/latest/scale-to-width-down/100?cb=20250510083545',
+  'captain_cold':     'https://static.wikia.nocookie.net/ddl/images/8/85/Captain_Cold_head.png/revision/latest/scale-to-width-down/100?cb=20250510083838',
+  'catwoman':         'https://static.wikia.nocookie.net/ddl/images/9/96/Catwoman_Head.png/revision/latest/scale-to-width-down/100?cb=20250510083807',
+  'green_arrow':      'https://static.wikia.nocookie.net/ddl/images/c/c5/Green_Arrow_head.png/revision/latest/scale-to-width-down/100?cb=20250510084407',
+  'killer_croc':      'https://static.wikia.nocookie.net/ddl/images/d/d0/Killer_Croc_head.png/revision/latest/scale-to-width-down/100?cb=20250510090016',
+  'mera':             'https://static.wikia.nocookie.net/ddl/images/c/cc/Mera_head.png/revision/latest/scale-to-width-down/100?cb=20250510090135',
+  'red_hood':         'https://static.wikia.nocookie.net/ddl/images/4/4e/Red_Hood_head.png/revision/latest/scale-to-width-down/100?cb=20250510095116',
+  'vixen':            'https://static.wikia.nocookie.net/ddl/images/0/02/Vixen_head.png/revision/latest/scale-to-width-down/100?cb=20250510095716',
+  'wonder_woman':     'https://static.wikia.nocookie.net/ddl/images/8/8f/Updated_Wonder_Woman_Head.png/revision/latest/scale-to-width-down/100?cb=20251023184316',
+  // Iconic
+  'wonder_woman_dm':  'https://static.wikia.nocookie.net/ddl/images/b/bf/Wonder_Woman_Death_Metal_Icon.png/revision/latest/scale-to-width-down/100?cb=20251108115024',
+};
+
+
+const STAR_TABLE={
+  'white-0':{s:0,c:1},
+  'white-1':{s:2,c:1},'white-2':{s:5,c:1},'white-3':{s:10,c:1},'white-4':{s:20,c:1},'white-5':{s:40,c:2},
+  'blue-1':{s:60,c:2},'blue-2':{s:80,c:3},'blue-3':{s:100,c:3},'blue-4':{s:130,c:4},'blue-5':{s:160,c:5},
+  'purple-1':{s:200,c:6},'purple-2':{s:240,c:7},'purple-3':{s:280,c:8},'purple-4':{s:320,c:9},'purple-5':{s:360,c:10},
+  'gold-1':{s:400,c:11},'gold-2':{s:440,c:12},'gold-3':{s:480,c:13},'gold-4':{s:540,c:14},'gold-5':{s:600,c:16},
+  'red-1':{s:680,c:18},'red-2':{s:760,c:20},'red-3':{s:840,c:22},'red-4':{s:920,c:24},'red-5':{s:1000,c:26}
+};
+const CLABEL={white:'White',blue:'Blue',purple:'Purple',gold:'Gold',red:'Red'};
+const STARS=['0 Stars','1 Star','2 Stars','3 Stars','4 Stars','5 Stars'];
+
+// ── GLOBAL CONSTANTS ──────────────────────────────────────────────────────────
+const TIERS_ALL=['white-0','white-1','white-2','white-3','white-4','white-5','blue-1','blue-2','blue-3','blue-4','blue-5','purple-1','purple-2','purple-3','purple-4','purple-5','gold-1','gold-2','gold-3','gold-4','gold-5','red-1','red-2','red-3','red-4','red-5'];
+const TIER_COLOR_MAP={white:'#c8c8c8',blue:'#3b82f6',purple:'#a855f7',gold:'#eab308',red:'#ef4444'};
+const TIER_LABEL_MAP={white:'White',blue:'Blue',purple:'Purple',gold:'Gold',red:'Red'};
+const STAR_LABELS=['0★','1★','2★','3★','4★','5★'];
+const pM=0.0384,pL=0.269,pHL=0.365,eSE=2.5,eSL=0.825;
+const pLD=pM*pL,pNLD=pM*pHL;
+const CLABEL2=TIER_LABEL_MAP;
+
+function tierColor(c){return TIER_COLOR_MAP[c]||'#888';}
+function tierLabel(key){const[c,s]=key.split('-');const si=parseInt(s);return TIER_LABEL_MAP[c]+' '+(si===0?'0★':STAR_LABELS[si-1]);}
+function tierConsumed(key){return key&&key!=='none'?(STAR_TABLE[key]||{s:0}).s:0;}
+
+let scenario='expected',nonLimMode='exact',batchSize=1;
+let history=[];
+
+// ── PERSISTENCE ───────────────────────────────────────────────────────────────
+function saveState(){
+  if(window._initInProgress)return;
+  try{
+    localStorage.setItem('mpc_history',JSON.stringify(history));
+    localStorage.setItem('mpc_ownedColor',document.getElementById('ownedColor').value);
+    localStorage.setItem('mpc_ownedStar',document.getElementById('ownedStar').value);
+    localStorage.setItem('mpc_targetColor',document.getElementById('targetColor').value);
+    localStorage.setItem('mpc_targetStar',document.getElementById('targetStar').value);
+    localStorage.setItem('mpc_shards',document.getElementById('shards').value);
+    localStorage.setItem('mpc_scenario',scenario);
+    localStorage.setItem('mpc_revAnvils',document.getElementById('reverse-anvils').value||'0');
+    localStorage.setItem('mpc_batchSize',String(batchSize));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const h=localStorage.getItem('mpc_history');if(h)history=JSON.parse(h);
+  }catch(e){}
+}
+function loadSettings(){
+  try{
+    const keys=['ownedColor','ownedStar','targetColor','targetStar','shards'];
+    const ids=['ownedColor','ownedStar','targetColor','targetStar','shards'];
+    keys.forEach((k,i)=>{
+      const v=localStorage.getItem('mpc_'+k);
+      if(v)document.getElementById(ids[i]).value=v;
+    });
+    const sc=localStorage.getItem('mpc_scenario');if(sc)scenario=sc;
+    const ra=localStorage.getItem('mpc_revAnvils');if(ra&&parseInt(ra)>0)document.getElementById('reverse-anvils').value=ra;
+    const bs=localStorage.getItem('mpc_batchSize');if(bs)batchSize=parseInt(bs)||50;
+  }catch(e){}
+}
+loadState();
+
+// ── BATCH / LOGGER ────────────────────────────────────────────────────────────
+function setBatch(n){
+  batchSize=n;
+  [1,10,50].forEach(b=>document.getElementById('bb-'+b).classList.toggle('active',b===n));
+  resetLogInputs();onLogChange();
+  if(!window._initInProgress)saveState();
+}
+function stepLog(id,d){const el=document.getElementById(id);if(!el)return;el.value=Math.max(0,(parseInt(el.value)||0)+d);onLogChange();}
+
+function _regularMythicIds(){
+  // All non-paywall Mythics not on banner
+  const bannerIds=new Set([bannerState.limited,...bannerState.hl].filter(Boolean));
+  return CHAMPIONS.filter(c=>c.rarity==='Mythic'&&!c.paywall&&!bannerIds.has(c.id)).map(c=>c.id);
+}
+
+function resetLogInputs(){
+  const liEl=document.getElementById('li-count');if(liEl)liEl.value=0;
+  bannerState.hl.forEach((_,i)=>{const el=document.getElementById(`hi-count-${i}`);if(el)el.value=0;});
+  _regularMythicIds().forEach(id=>{const el=document.getElementById(`re-count-${id}`);if(el)el.value=0;});
+  ['le-count','batch-shards','mlp-count'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=0;});
+  const epd=document.getElementById('epic-display');if(epd)epd.textContent='0';
+  const val=document.getElementById('log-validation');if(val)val.style.display='none';
+}
+
+function onLogChange(){
+  const li=parseInt(document.getElementById('li-count')?.value)||0;
+  let hi=0;
+  bannerState.hl.forEach((_,i)=>{hi+=parseInt(document.getElementById(`hi-count-${i}`)?.value)||0;});
+  let re=0;
+  _regularMythicIds().forEach(id=>{re+=parseInt(document.getElementById(`re-count-${id}`)?.value)||0;});
+  const mlp=parseInt(document.getElementById('mlp-count')?.value)||0;
+  const le=parseInt(document.getElementById('le-count')?.value)||0;
+  const total=li+hi+re+mlp+le;
+  const epics=Math.max(0,batchSize-total);
+  const epd=document.getElementById('epic-display');if(epd)epd.textContent=epics;
+  const btn=document.getElementById('log-submit-btn');
+  if(btn)btn.textContent='LOG '+batchSize+' PULL'+(batchSize===1?'':'S');
+  const val=document.getElementById('log-validation');
+  if(!val)return;
+
+  // Banner completeness check
+  const bannerComplete = bannerState.limited && bannerState.hl.every(Boolean);
+  if(!bannerComplete){
+    val.style.display='block';val.style.color='var(--accent)';
+    val.textContent='Set all 4 banner champions in the Bleed Banner before logging';
+    if(btn)btn.disabled=true;
+    return;
+  }
+  if(total>batchSize){
+    val.style.display='block';val.style.color='var(--mythic)';
+    val.textContent='Total pulls ('+total+') exceeds batch size ('+batchSize+')';
+    if(btn)btn.disabled=true;
+  }else{val.style.display='none';if(btn)btn.disabled=false;}
+}
+
+function submitBatch(){
+  const li=parseInt(document.getElementById('li-count')?.value)||0;
+  // Collect per-highlighted counts
+  const hlIds=bannerState.hl; // keep nulls for index alignment
+  const hiPerChamp=hlIds.map((_,i)=>parseInt(document.getElementById(`hi-count-${i}`)?.value)||0);
+  const hi=hiPerChamp.reduce((s,v)=>s+v,0);
+  // Collect per-regular-mythic counts
+  const regIds=_regularMythicIds();
+  const rePerChamp=regIds.map(id=>({id,count:parseInt(document.getElementById(`re-count-${id}`)?.value)||0}));
+  const re=rePerChamp.reduce((s,v)=>s+v.count,0);
+  const mlp=parseInt(document.getElementById('mlp-count')?.value)||0;
+  const le=parseInt(document.getElementById('le-count')?.value)||0;
+  const bonusShards=parseInt(document.getElementById('batch-shards')?.value)||0;
+  const total=li+hi+re+mlp+le;
+  const ep=Math.max(0,batchSize-total);
+  const counts={limited:li,highlighted:hi,regular:re+mlp,legendary:le,epic:ep};
+
+  // ── Helper: apply pulls to a champion's collection (0 first copy, shardsPer per dupe)
+  // Returns {earned, wasNew} so we can build the rich description
+  function applyPullsToChamp(champId, pulls, shardsPer){
+    if(!pulls||!champId)return{earned:0,wasNew:false};
+    if(CHAMPIONS.findIndex(c=>c.id===champId)<0)return{earned:0,wasNew:false};
+    const existing=champData[champId]||{color:'none',star:'1',shards:0};
+    const alreadyOwned=existing.color&&existing.color!=='none';
+    const wasNew=!alreadyOwned;
+    const dupeShards=alreadyOwned?pulls*shardsPer:(pulls>1?(pulls-1)*shardsPer:0);
+    champData[champId]={...existing,
+      color:alreadyOwned?existing.color:'white',
+      star:alreadyOwned?existing.star:0,
+      shards:(parseInt(existing.shards)||0)+dupeShards};
+    saveChampData();
+    return{earned:dupeShards,wasNew};
+  }
+
+  // ── Apply pulls and collect shard earnings for history ──────────────────────
+  const curShards=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  const oc=document.getElementById('ownedColor').value;
+  let newShards=curShards+bonusShards;
+
+  // Limited champion
+  const limitedId=bannerState.limited;
+  const limitedMeta=limitedId?CHAMP_META.find(c=>c.id===limitedId):null;
+  const limitedName=limitedMeta?limitedMeta.name:'Limited';
+  let limitedEarned=0;
+  if(li>0){
+    const hasFirst=oc!=='none'||curShards>0;
+    limitedEarned=hasFirst?li*40:(li>1?(li-1)*40:0);
+    newShards+=limitedEarned;
+    // Accrue to limited champion's collection record
+    if(limitedId){
+      const existing=champData[limitedId]||{color:'none',star:'1',shards:0};
+      const alreadyOwned=existing.color&&existing.color!=='none';
+      champData[limitedId]={...existing,
+        color:alreadyOwned?existing.color:'white',
+        star:alreadyOwned?existing.star:0,
+        shards:(parseInt(existing.shards)||0)+limitedEarned};
+      saveChampData();
+    }
+  }
+  // Bonus shards go to limited champion's collection too
+  if(bonusShards>0&&limitedId){
+    const existing=champData[limitedId]||{color:'none',star:'1',shards:0};
+    champData[limitedId]={...existing,shards:(parseInt(existing.shards)||0)+bonusShards};
+    saveChampData();
+  }
+
+  // Highlighted champions
+  const hlResults=hlIds.map((hlId,i)=>{
+    const pulls=hiPerChamp[i];
+    if(!hlId||!pulls)return null;
+    const meta=CHAMP_META.find(c=>c.id===hlId);
+    const result=applyPullsToChamp(hlId,pulls,10);
+    return{id:hlId,name:meta?meta.name:hlId,pulls,...result};
+  }).filter(Boolean);
+
+  // Regular Mythics
+  const reResults=rePerChamp.filter(r=>r.count>0).map(({id,count})=>{
+    const meta=CHAMP_META.find(c=>c.id===id);
+    const result=applyPullsToChamp(id,count,10);
+    return{id,name:meta?meta.name:id,pulls:count,...result};
+  });
+
+  // ── Build rich history description ──────────────────────────────────────────
+  const parts=[];
+  if(li>0){
+    const newTag=limitedEarned===0&&li===1?'<span style="font-size:0.75em;opacity:0.7;"> (unlock)</span>':'';
+    const shardsTag=limitedEarned>0?`<span style="color:var(--green);font-size:0.78em;"> +${limitedEarned}✦</span>`:'';
+    parts.push(`<span style="color:var(--mythic)">${li}× ${limitedName}${newTag}${shardsTag}</span>`);
+  }
+  hlResults.forEach(r=>{
+    const newTag=r.wasNew?'<span style="font-size:0.75em;opacity:0.7;"> (unlock)</span>':'';
+    const shardsTag=r.earned>0?`<span style="color:var(--green);font-size:0.78em;"> +${r.earned}✦</span>`:'';
+    parts.push(`<span style="color:var(--mythic)">${r.pulls}× ${r.name}${newTag}${shardsTag}</span>`);
+  });
+  reResults.forEach(r=>{
+    const newTag=r.wasNew?'<span style="font-size:0.75em;opacity:0.7;"> (unlock)</span>':'';
+    const shardsTag=r.earned>0?`<span style="color:var(--green);font-size:0.78em;"> +${r.earned}✦</span>`:'';
+    parts.push(`<span style="color:var(--mythic)">${r.pulls}× ${r.name}${newTag}${shardsTag}</span>`);
+  });
+  if(mlp>0) parts.push(`<span style="color:var(--mythic)">${mlp}× Mythic Legacy Piece</span>`);
+  if(le>0)  parts.push(`<span style="color:var(--legendary)">${le}× Legendary</span>`);
+  if(ep>0)  parts.push(`<span style="color:#9b8ee0">${ep}× Epic</span>`);
+
+  // Total auto-earned shards for display in history (dupe shards only, not bonus)
+  const autoEarned=limitedEarned+hlResults.reduce((s,r)=>s+r.earned,0)+reResults.reduce((s,r)=>s+r.earned,0);
+
+  history.unshift({
+    id:Date.now(),batch:batchSize,
+    desc:parts.join(', '),
+    shards:bonusShards,        // manual bonus shards
+    bonusName:limitedName,     // champion these bonus shards belong to
+    autoShards:autoEarned,     // auto-calculated dupe shards
+    counts:{limited:counts.limited,highlighted:counts.highlighted,regular:counts.regular,legendary:counts.legendary},
+    ts:new Date().toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
+  });
+
+  // ── Update highlighted dot picker ───────────────────────────────────────────
+  const nl=parseInt(document.getElementById('nonlimpulled').value)||0;
+  const updated=Math.min(6,nl+counts.highlighted);
+  if(counts.highlighted>0){
+    document.getElementById('nonlimpulled').value=updated>=6?6:updated;
+    nonLimMode=updated>=6?'maxed':'exact';
+    bannerStates[activeBannerIdx].nl=updated>=6?6:updated;
+    bannerStates[activeBannerIdx].nlMode=nonLimMode;
+    saveBannerState();
+    buildNonLimPicker(updated);
+  }
+
+  document.getElementById('shards').value=newShards;
+  autoUpdateStarLevel();
+  // Decrement reverse anvils
+  const revEl=document.getElementById('reverse-anvils');
+  const revVal=parseInt(revEl.value)||0;
+  if(revVal>0){revEl.value=Math.max(0,revVal-batchSize);calcReverse();}
+  saveState();renderHistory();renderAudit();setBatch(batchSize);
+  const histPanel=document.querySelector('#history-list');
+  if(histPanel){histPanel.style.transition='background 0.1s';histPanel.style.background='rgba(79,195,247,0.08)';setTimeout(()=>{histPanel.style.background='';},300);}
+  calculate();
+}
+
+function renderHistory(){
+  const el=document.getElementById('history-list');
+  if(!el)return;
+  if(!history.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
+  el.innerHTML=history.map(e=>{
+    const bonusS=e.shards||0;
+    let shardsHtml='';
+    if(bonusS>0){
+      const nameStr=(e.bonusName&&e.bonusName!=='Limited')?` (${e.bonusName})`:'';
+      shardsHtml=`<div class="hi-shards">+${bonusS} bonus${nameStr}</div>`;
+    }
+    return `<div class="history-item">
+      <div class="hi-batch">×${e.batch}</div>
+      <div class="hi-pulls">${e.desc||'(no pulls)'}</div>
+      ${shardsHtml}
+      <div style="font-size:0.58rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;white-space:nowrap;">${e.ts||''}</div>
+      <button class="hi-del" onclick="deleteEntry(${e.id})">&#x2715;</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteEntry(id){
+  history=history.filter(e=>e.id!==id);
+  saveState();renderHistory();renderAudit();calculate();
+}
+
+function clearPullHistory(){
+  if(!window._clearHistConfirm){
+    const btn=document.querySelector('button[onclick="clearPullHistory()"]');
+    window._clearHistConfirm=true;
+    btn.textContent='Tap again to confirm';
+    setTimeout(()=>{window._clearHistConfirm=false;btn.textContent='Clear History';},3000);
+    return;
+  }
+  window._clearHistConfirm=false;
+  history=[];
+  saveState();renderHistory();renderAudit();calculate();
+}
+
+function clearHistory(){
+  if(!window._clearConfirm){
+    const btn=document.querySelector('button[onclick="clearHistory()"]');
+    window._clearConfirm=true;
+    btn.textContent='Tap again to confirm';btn.style.background='rgba(212,43,43,0.15)';btn.style.borderColor='var(--mythic)';btn.style.color='var(--mythic)';
+    setTimeout(()=>{window._clearConfirm=false;btn.textContent='Reset all settings & tracking';btn.style.background='';btn.style.borderColor='';btn.style.color='';},3000);
+    return;
+  }
+  window._clearConfirm=false;
+  history=[];
+  document.getElementById('shards').value=0;
+  document.getElementById('ownedColor').value='none';
+  document.getElementById('ownedStar').value=1;
+  document.getElementById('targetColor').value='red';
+  document.getElementById('targetStar').value=5;
+  buildColorPicker('targetColorPicker','targetColor',false,'red');
+  buildStarPicker('targetStarPicker','targetStar',5,'red');
+  updatePlannerCurrentLevel();
+  buildNonLimPicker(0);
+  saveState();renderHistory();renderAudit();
+  const re=document.getElementById('results');if(re)re.innerHTML='';
+  calculate();
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────────
+function copyShareSummary(){
+  const oc=document.getElementById('ownedColor').value;
+  const os=parseInt(document.getElementById('ownedStar').value);
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value)||1;
+  const shards=parseInt(document.getElementById('shards').value)||0;
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os-1]));
+  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts-1];
+  const tEntry=STAR_TABLE[tc+'-'+ts];
+  const oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
+  const shardsNeeded=Math.max(0,tEntry.s-(oEntry?oEntry.s:0)-shards);
+  const totalPulls=history.reduce((s,e)=>s+e.batch,0);
+  const totalShards=history.reduce((s,e)=>s+(e.shards||0)+(e.autoShards||0),0);
+  const actMythics=history.reduce((s,e)=>s+(e.counts?e.counts.limited+e.counts.highlighted+e.counts.regular:0),0);
+  const actLimited=history.reduce((s,e)=>s+(e.counts?e.counts.limited:0),0);
+  const resultsEl=document.getElementById('results');
+  const cardVals=resultsEl?resultsEl.querySelectorAll('.card-value'):[];
+  const anvilEst=cardVals.length>0?cardVals[0].textContent.trim():'—';
+  const sep=String.fromCharCode(10);
+  const lines=[
+    '🦇 DC Dark Legion — Featured Mystic+ Tracker',
+    '─────────────────────────────',
+    '📍 Current Level : '+fromLabel,
+    '🎯 Target Level  : '+toLabel,
+    '💎 Shards Owned  : '+shards,
+    '⚡ Shards Needed : '+shardsNeeded,
+    '─────────────────────────────',
+    '📊 Pulls Logged  : '+totalPulls,
+    '✨ Mythics Pulled: '+actMythics+' ('+actLimited+' Limited)',
+    '💠 Shards Earned : +'+totalShards,
+    '─────────────────────────────',
+    '📈 Anvils to Target (est.): '+anvilEst,
+    '─────────────────────────────',
+    'Generated by Featured Mystic+ Calculator',
+  ];
+  const text=lines.join(sep);
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('share-btn');
+    btn.textContent='Copied!';btn.style.color='var(--green)';btn.style.borderColor='var(--green)';
+    setTimeout(()=>{btn.textContent='Copy Summary';btn.style.color='';btn.style.borderColor='';},2000);
+  }).catch(()=>{alert(text);});
+}
+
+// ── PICKERS ───────────────────────────────────────────────────────────────────
+const COLOR_DEFS=[
+  {v:'white',bg:'#c8c8c8',fg:'#000',label:'W'},
+  {v:'blue',bg:'#3b82f6',fg:'#fff',label:'B'},
+  {v:'purple',bg:'#a855f7',fg:'#fff',label:'P'},
+  {v:'gold',bg:'#eab308',fg:'#000',label:'G'},
+  {v:'red',bg:'#ef4444',fg:'#fff',label:'R'},
+];
+const STAR_COLORS={white:'#c8c8c8',blue:'#3b82f6',purple:'#a855f7',gold:'#eab308',red:'#ef4444',none:'#555'};
+
+function buildColorPicker(containerId,hiddenId,includeNone,defaultVal){
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
+  if(includeNone){
+    const b=document.createElement('button');
+    b.className='cp-btn cp-none'+(defaultVal==='none'?' active':'');
+    b.textContent='None';b.onclick=()=>setColor(hiddenId,containerId,'none');
+    container.appendChild(b);
+  }
+  COLOR_DEFS.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cp-btn'+(defaultVal===c.v?' active':'');
+    b.style.background=c.bg;b.style.color=c.fg;b.textContent=c.label;b.title=c.v.charAt(0).toUpperCase()+c.v.slice(1);
+    b.onclick=()=>setColor(hiddenId,containerId,c.v);
+    container.appendChild(b);
+  });
+}
+
+function buildStarPicker(containerId,hiddenId,defaultVal,colorVal){
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
+  const isNoneColor=colorVal==='none';
+  const minStar=colorVal==='white'?0:1;
+  for(let i=minStar;i<=5;i++){
+    const s=document.createElement('span');
+    const isActive=!isNoneColor&&(i<=defaultVal&&i>0||i===0&&defaultVal===0);
+    s.className='sp-star'+(isActive?' active':'');
+    s.textContent=i===0?'○':'★';
+    s.style.color=i===0?'rgba(200,200,200,0.5)':STAR_COLORS[colorVal]||'#eab308';
+    s.dataset.val=i;
+    s.onclick=()=>setStar(hiddenId,containerId,i);
+    s.onmouseenter=()=>hoverStar(containerId,i,minStar);
+    s.onmouseleave=()=>unhoverStar(containerId,hiddenId,minStar);
+    container.appendChild(s);
+  }
+}
+
+function hoverStar(cId,val,minStar=1){
+  document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
+    const starVal=idx+(minStar);
+    const lit=starVal>0&&starVal<=val;
+    s.style.opacity=lit?'1':'0.25';
+    s.style.filter=lit?'none':'grayscale(1)';
+  });
+}
+function unhoverStar(cId,hId,minStar=1){
+  const cur=parseInt(document.getElementById(hId).value)||0;
+  document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
+    const starVal=idx+minStar;
+    const lit=starVal>0&&starVal<=cur;
+    s.style.opacity=lit?'1':'0.25';
+    s.style.filter=lit?'none':'grayscale(1)';
+  });
+}
+function updateStarColor(el,colorVal){el.querySelectorAll('.sp-star').forEach(s=>s.style.color=STAR_COLORS[colorVal]||'#eab308');}
+
+const _origSetColor_base=function(hiddenId,containerId,val){
+  const prevColor=document.getElementById(hiddenId).value;
+  document.getElementById(hiddenId).value=val;
+  document.getElementById(containerId).querySelectorAll('.cp-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(containerId).querySelectorAll('.cp-btn').forEach(b=>{
+    if((val==='none'&&b.textContent==='None')||(b.title&&b.title.toLowerCase()===val))b.classList.add('active');
+  });
+  const starPickerId=containerId.replace('ColorPicker','StarPicker');
+  const starEl=document.getElementById(starPickerId);
+  const starHiddenId=hiddenId==='cm-color'?'cm-star':hiddenId.replace('Color','Star');
+  if(starEl){
+    updateStarColor(starEl,val);
+    starEl.style.opacity=val==='none'?'0.3':'1';
+    starEl.style.pointerEvents=val==='none'?'none':'';
+    if(val!=='none'){
+      const curStar=parseInt(document.getElementById(starHiddenId).value);
+      let newStar;
+      if(prevColor==='none'){
+        // Picking a color for the first time — default to 0★ for white, 1★ for others
+        newStar=val==='white'?0:1;
+      } else {
+        // Already had a color — keep current star, just prevent 0★ on non-white
+        newStar=(val!=='white'&&curStar===0)?1:curStar;
+      }
+      document.getElementById(starHiddenId).value=newStar;
+      buildStarPicker(starPickerId,starHiddenId,newStar,val);
+    }
+  }
+  calculate();
+};
+function setColor(hiddenId,containerId,val){
+  _origSetColor_base(hiddenId,containerId,val);
+  if(hiddenId==='cm-color'){
+    const sp=document.getElementById('cmStarPicker');
+    if(sp){sp.style.opacity=val==='none'?'0.3':'1';sp.style.pointerEvents=val==='none'?'none':'';}
+    updateCMLevelLabel();
+  }
+}
+
+const _origSetStar_base=function(hiddenId,containerId,val){
+  document.getElementById(hiddenId).value=val;
+  unhoverStar(containerId,hiddenId);
+  calculate();
+};
+function setStar(hiddenId,containerId,val){
+  _origSetStar_base(hiddenId,containerId,val);
+  if(hiddenId==='cm-star')updateCMLevelLabel();
+}
+
+function step(id,d){const el=document.getElementById(id);el.value=Math.max(0,(parseInt(el.value)||0)+d);calculate();}
+
+function setScenario(s){
+  scenario=s;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+s).classList.add('active');
+  calculate();
+}
+
+// ── NON-LIM DOT PICKER ───────────────────────────────────────────────────────
+function buildNonLimPicker(selectedVal){
+  const container=document.getElementById('nonlimDotPicker');
+  if(!container)return;
+  container.innerHTML='';
+  for(let i=0;i<=5;i++){
+    const d=document.createElement('div');
+    d.className='nl-dot'+(i===selectedVal&&nonLimMode!=='maxed'?' active':'');
+    d.textContent=String(i);d.onclick=()=>setNonLimDot(i);
+    container.appendChild(d);
+  }
+  const d6=document.createElement('div');
+  d6.className='nl-dot dot-max'+(nonLimMode==='maxed'?' active':'');
+  d6.textContent='6+';d6.onclick=()=>setNonLimDot(6);
+  container.appendChild(d6);
+}
+function setNonLimDot(val){
+  nonLimMode=val>=6?'maxed':'exact';
+  document.getElementById('nonlimpulled').value=val>=6?6:val;
+  bannerStates[activeBannerIdx].nl=val>=6?6:val;
+  bannerStates[activeBannerIdx].nlMode=nonLimMode;
+  saveBannerState();
+  buildNonLimPicker(val);calculate();
+}
+
+// ── AUTO UPDATE STAR LEVEL ────────────────────────────────────────────────────
+function autoUpdateStarLevel(){
+  const ownedShards=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  const curColor=document.getElementById('ownedColor').value;
+  const curStar=parseInt(document.getElementById('ownedStar').value); // no ||1 fallback — 0 is valid
+  const curConsumed=curColor==='none'?0:(STAR_TABLE[curColor+'-'+curStar]||{s:0}).s;
+  const totalLifetime=curConsumed+ownedShards;
+  // Only skip if truly nothing owned (not owned at all)
+  if(curColor==='none'&&totalLifetime===0)return;
+  let bestColor=null,bestStar=null;
+  for(const key of TIERS_ALL){
+    const entry=STAR_TABLE[key];
+    if(entry&&entry.s<=totalLifetime){const[c,s]=key.split('-');bestColor=c;bestStar=parseInt(s);}
+  }
+  if(!bestColor)return;
+  const curIndex=curColor==='none'?-1:TIERS_ALL.indexOf(curColor+'-'+curStar);
+  const newIndex=TIERS_ALL.indexOf(bestColor+'-'+bestStar);
+  if(newIndex<=curIndex)return;
+  document.getElementById('ownedColor').value=bestColor;
+  document.getElementById('ownedStar').value=bestStar;
+  const newConsumed=STAR_TABLE[bestColor+'-'+bestStar].s;
+  document.getElementById('shards').value=Math.max(0,totalLifetime-newConsumed);
+  updatePlannerCurrentLevel();
+}
+
+// ── AUDIT TRACKER ────────────────────────────────────────────────────────────
+function renderAudit(){
+  const totalPulls=history.reduce((s,e)=>s+e.batch,0);
+  const panel=document.getElementById('audit-panel');
+  if(!panel)return;
+  if(totalPulls===0){panel.style.display='none';return;}
+  panel.style.display='block';
+  const actMythic=history.reduce((s,e)=>s+(e.counts?e.counts.limited+e.counts.highlighted+e.counts.regular:0),0);
+  const actLimited=history.reduce((s,e)=>s+(e.counts?e.counts.limited:0),0);
+  const actHighlighted=history.reduce((s,e)=>s+(e.counts?e.counts.highlighted:0),0);
+  const actRegular=history.reduce((s,e)=>s+(e.counts?e.counts.regular:0),0);
+  const actLegendary=history.reduce((s,e)=>s+(e.counts?e.counts.legendary:0),0);
+  const expMythic=totalPulls*0.0384;
+  const expLimited=totalPulls*pLD;
+  const expHighlighted=totalPulls*pNLD;
+  const expRegular=totalPulls*(pM*0.366);
+  const expLegendary=totalPulls*0.1779;
+  function badge(act,exp){const r=exp>0?act/exp:1;if(r>=1.15)return'lucky';if(r<=0.85)return'unlucky';return'neutral';}
+  function mkRow(label,act,exp,color,indent){
+    const b=badge(act,exp);
+    const pct=exp>0?(act/exp*100).toFixed(0)+'%':'—';
+    const barW=exp>0?Math.min(200,Math.round(act/exp*100)):100;
+    return `<div class="audit-row" style="${indent?'padding-left:16px;':''}">
+      <span style="color:${color};${indent?'font-size:0.82rem;':'font-weight:600;'}">${label}</span>
+      <span class="audit-actual">${act}</span>
+      <span class="audit-expected">/${exp.toFixed(1)}</span>
+      <span class="audit-badge ${b}">${pct}</span>
+      <div class="audit-bar-wrap"><div class="audit-bar" style="width:${barW}%;background:${b==='lucky'?'var(--green)':b==='unlucky'?'var(--mythic)':'var(--text-dim)'};"></div></div>
+    </div>`;
+  }
+  const totalLoggedShards=history.reduce((s,e)=>s+(e.shards||0)+(e.autoShards||0),0);
+  const shardsNote=totalLoggedShards>0?' · +'+totalLoggedShards+' shards':'';
+  const colStyle='grid-template-columns:1fr 48px 80px 60px;';
+  const header=`<div style="font-family:Share Tech Mono,monospace;font-size:0.62rem;color:var(--text-dim);display:grid;${colStyle}gap:4px 8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:6px;">
+    <span>${totalPulls} pulls logged${shardsNote}</span><span style="text-align:right">ACTUAL</span><span style="text-align:right">EXPECTED</span><span style="text-align:right">RATE</span>
+  </div>`;
+  const summaryRow=mkRow('Any Mythic',actMythic,expMythic,'var(--mythic)',false);
+  const subHeader=`<div style="margin:4px 0 2px;border-left:2px solid var(--mythic-dim);padding-left:6px;">`;
+  const subRows=mkRow('Limited',actLimited,expLimited,'var(--mythic)',true)+
+    mkRow('Highlighted',actHighlighted,expHighlighted,'var(--mythic)',true)+
+    mkRow('Regular',actRegular,expRegular,'var(--mythic)',true);
+  const subClose='</div>';
+  const legendaryDivider='<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>';
+  const legendaryRow=mkRow('Legendary',actLegendary,expLegendary,'var(--legendary)',false);
+  const legendaryClose='</div>';
+  // Streak indicator
+  const streakEl=document.getElementById('streak-indicator');
+  const recentN=Math.min(history.length,10);
+  if(recentN>=3&&streakEl){
+    const recentPulls=history.slice(0,recentN).reduce((s,e)=>s+e.batch,0);
+    const recentMythics=history.slice(0,recentN).reduce((s,e)=>s+(e.counts?e.counts.limited+e.counts.highlighted+e.counts.regular:0),0);
+    const expRecent=recentPulls*0.0384;
+    const ratio=expRecent>0?recentMythics/expRecent:1;
+    const diff=recentMythics-expRecent;
+    let streakColor,streakIcon,streakText;
+    if(Math.abs(diff)<0.8){streakColor='var(--text-dim)';streakIcon='◈';streakText='Running average — Mythic luck is on par recently';}
+    else if(ratio>=1.5){streakColor='var(--green)';streakIcon='▲▲';streakText='Hot streak! '+recentMythics+' Mythics in last '+recentPulls+' pulls (exp '+expRecent.toFixed(1)+')';}
+    else if(ratio>=1.15){streakColor='var(--green)';streakIcon='▲';streakText='Above average recently — '+recentMythics+' Mythics in last '+recentPulls+' pulls (exp '+expRecent.toFixed(1)+')';}
+    else if(ratio<=0.5){streakColor='var(--mythic)';streakIcon='▼▼';streakText='Cold streak — only '+recentMythics+' Mythics in last '+recentPulls+' pulls (exp '+expRecent.toFixed(1)+')';}
+    else{streakColor='var(--mythic)';streakIcon='▼';streakText='Slightly below average recently — '+recentMythics+' Mythics in last '+recentPulls+' pulls (exp '+expRecent.toFixed(1)+')';}
+    streakEl.style.display='block';
+    streakEl.innerHTML='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;"><span style="font-family:Share Tech Mono,monospace;font-size:1rem;color:'+streakColor+'">'+streakIcon+'</span><span style="font-size:0.78rem;color:'+streakColor+'">'+streakText+'</span></div>';
+  }else if(streakEl){streakEl.style.display='none';}
+  const auditContent=document.getElementById('audit-content');
+  if(auditContent)auditContent.innerHTML=header+summaryRow+subHeader+subRows+subClose+legendaryDivider+legendaryRow+legendaryClose;
+}
+
+// ── SEEDED MC ─────────────────────────────────────────────────────────────────
+const _mcCache={};
+function _mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function _hashKey(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function runMC(goal,hasFirst,alreadyNL,pLD,pNLD,eSE,eSL,runs=2000,startShards=0){
+  if(goal<=startShards)return{median:0,low:0,high:0};
+  const key=goal+'|'+(hasFirst?1:0)+'|'+alreadyNL+'|'+startShards;
+  if(_mcCache[key])return _mcCache[key];
+  const rand=_mulberry32(_hashKey(key));
+  const all=[];
+  for(let r=0;r<runs;r++){
+    let s=startShards,d=0,fc=hasFirst,nl=alreadyNL;
+    while(s<goal){d++;if(rand()<pLD){s+=fc?40:0;fc=true;}if(rand()<pNLD){s+=nl<6?eSE:eSL;nl++;}}
+    all.push(d);
+  }
+  all.sort((a,b)=>a-b);
+  const result={median:all[Math.floor(runs*0.50)],low:all[Math.floor(runs*0.25)],high:all[Math.floor(runs*0.75)]};
+  _mcCache[key]=result;return result;
+}
+
+// ── CALC NEXT LEVEL ───────────────────────────────────────────────────────────
+function calcNextLevelAnvils(tc,ts,oc,os,ownedShards,alreadyNL,mode,mythicsSinceLimited=0){
+  const curKey=oc==='none'?null:oc+'-'+os;
+  const curIdx=curKey?TIERS_ALL.indexOf(curKey):-1;
+  if(curIdx>=TIERS_ALL.length-1)return null;
+  const nextKey=TIERS_ALL[curIdx+1];
+  const nextShards=STAR_TABLE[nextKey].s;
+  const curConsumed=curKey?(STAR_TABLE[curKey]||{s:0}).s:0;
+  const goal=nextShards-curConsumed;
+  if(goal<=ownedShards)return{median:0,low:0,high:0};
+  const hasFirst=(oc!=='none'||ownedShards>0);
+  if(mode==='guaranteed'){
+    const dpLFull=200,nlpc=3,gbnl=2;
+    const mythicsLeft=Math.max(1,4-mythicsSinceLimited);
+    const dpLFirst=mythicsLeft*50,nlpcFirst=mythicsLeft-1;
+    const scbFirst=nlpcFirst*gbnl,scb=nlpc*gbnl;
+    let anvils=0,acc=ownedShards,fc=hasFirst,firstCycle=true;
+    while(acc<goal){const cd=firstCycle?dpLFirst:dpLFull,cb=firstCycle?scbFirst:scb;acc+=(fc?40:0)+cb;anvils+=cd;fc=true;firstCycle=false;}
+    return anvils;
+  }else{return runMC(goal,hasFirst,alreadyNL,pLD,pNLD,eSE,eSL,2000,ownedShards);}
+}
+
+// ── PROGRESS BAR ──────────────────────────────────────────────────────────────
+function updateProgressBar(earned,target){
+  if(!document.getElementById('champ-dropdown').value)return;
+  const pct=Math.min(100,Math.round((earned/target)*100));
+  const panel=document.getElementById('progress-panel');if(!panel)return;panel.style.display='block';
+  const remaining=Math.max(0,target-earned);
+  const progressLabel=document.getElementById('static-progress-label');
+  if(progressLabel)progressLabel.innerHTML=
+    '<span>'+earned+' / '+target+' shards</span>'+
+    '<span style="display:flex;gap:10px;align-items:center;">'+
+    (remaining>0?'<span style="color:var(--text-dim);font-size:0.65rem;">'+remaining+' to go</span>':'<span style="color:var(--green);font-size:0.65rem;">&#10003; GOAL REACHED</span>')+
+    '<span style="color:var(--accent)">'+pct+'%</span></span>';
+  // Segmented color bar
+  const TIER_DEFS=[{key:'white',end:40},{key:'blue',end:160},{key:'purple',end:360},{key:'gold',end:600},{key:'red',end:1000}];
+  const stops=[];let prev=0;
+  for(const td of TIER_DEFS){
+    if(td.end>target)break;
+    const pctEnd=Math.round((td.end/target)*100);
+    const col=tierColor(td.key);
+    stops.push(col+' '+prev+'%',col+' '+pctEnd+'%');
+    prev=pctEnd;
+  }
+  const lastColor=tierColor((document.getElementById('targetColor')||{}).value)||'#ef4444';
+  if(prev<100){stops.push(lastColor+' '+prev+'%',lastColor+' 100%');}
+  const staticBar=document.getElementById('static-progress-bar');
+  if(staticBar){
+    const barWrap=staticBar.parentElement;
+    if(barWrap){barWrap.style.background='linear-gradient(90deg,'+stops.join(',')+')';}
+    staticBar.style.width=(100-pct)+'%';staticBar.style.marginLeft='auto';
+    staticBar.style.background='rgba(8,11,18,0.75)';staticBar.style.boxShadow='';
+  }
+  // Route label
+  const oc=(document.getElementById('ownedColor')||{}).value||'none';
+  const os=parseInt((document.getElementById('ownedStar')||{}).value)||0;
+  const tc=(document.getElementById('targetColor')||{}).value||'red';
+  const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os-1]));
+  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts-1];
+  const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
+  const toColor=tierColor(tc);
+  const progressRoute=document.getElementById('progress-route');
+  if(progressRoute)progressRoute.innerHTML=
+    '<span style="color:'+fromColor+'">'+fromLabel+'</span>'+
+    '<span style="color:var(--text-dim);margin:0 6px;">→</span>'+
+    '<span style="color:'+toColor+'">'+toLabel+'</span>';
+  // Milestone markers
+  const tiers=TIERS_ALL;
+  const startIdx=oc==='none'?-1:tiers.indexOf(oc+'-'+os);
+  const endIdx=tiers.indexOf(tc+'-'+ts);
+  const markersEl=document.getElementById('milestone-markers');
+  if(markersEl&&endIdx>startIdx){
+    const startShards=startIdx<0?0:STAR_TABLE[tiers[startIdx]].s;
+    const endShards=STAR_TABLE[tiers[endIdx]].s;
+    const range=endShards-startShards;
+    let html='';
+    for(let i=startIdx+1;i<endIdx;i++){
+      if(i<0)continue;
+      const tierShards=STAR_TABLE[tiers[i]].s;
+      const pctM=Math.min(99,Math.max(1,((tierShards-startShards)/range)*100));
+      const isPassed=earned>=(tierShards-startShards);
+      const mColor=tierColor(tiers[i].split('-')[0]);
+      const mLabel=tiers[i].split('-')[1]+'★';
+      const isBoundary=tiers[i].endsWith('-5');
+      html+='<div style="position:absolute;left:'+pctM+'%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">'+
+        '<div style="width:1px;height:'+(isBoundary?5:3)+'px;background:'+mColor+';opacity:1;"></div>'+
+        (isBoundary?'<div style="font-family:Share Tech Mono,monospace;font-size:0.5rem;color:'+mColor+';white-space:nowrap;">'+mLabel+'</div>':'')+
+      '</div>';
+    }
+    markersEl.innerHTML=html;
+  }
+}
+
+// ── CONSUME BUTTONS ───────────────────────────────────────────────────────────
+function renderConsumeButtons(){
+  const container=document.getElementById('consume-btns');
+  if(!container)return;
+  container.innerHTML='';
+  container.style.display='none';
+  const oc=document.getElementById('ownedColor').value;
+  const os=parseInt(document.getElementById('ownedStar').value);
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value)||1;
+  const owned=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  if(!oc||oc==='none')return;
+  const curKey=oc+'-'+os;
+  const targetKey=tc+'-'+ts;
+  const curIdx=TIERS_ALL.indexOf(curKey);
+  const targetIdx=TIERS_ALL.indexOf(targetKey);
+  if(curIdx<0)return;
+  const curConsumed=(STAR_TABLE[curKey]||{s:0}).s;
+  const totalOwned=curConsumed+owned;
+  // Next level button
+  const nextIdx=curIdx+1;
+  if(nextIdx<TIERS_ALL.length&&nextIdx<=targetIdx){
+    const nextKey=TIERS_ALL[nextIdx];
+    const nextShards=STAR_TABLE[nextKey].s;
+    const nextNeeded=Math.max(0,nextShards-totalOwned);
+    const[nc,ns]=nextKey.split('-');
+    const canNext=nextNeeded===0;
+    const nextCost=nextShards-curConsumed;
+    const btn=document.createElement('button');
+    btn.className='consume-btn next';btn.disabled=!canNext;
+    btn.style.opacity=canNext?'1':'0.4';btn.style.cursor=canNext?'pointer':'not-allowed';
+    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+(parseInt(ns)===0?'0★':STAR_LABELS[parseInt(ns)-1])+'</span>'
+      +' <span style="font-size:0.85em;opacity:0.7;">— uses '+nextCost+' shards</span>'
+      +(canNext?'':' <span style="font-size:0.85em;color:var(--mythic);">(need '+nextNeeded+' more)</span>');
+    if(canNext)btn.onclick=()=>consumeShards(nextKey,curConsumed,totalOwned);
+    container.appendChild(btn);
+    container.style.display='flex';
+  }
+  // Max reachable button
+  let maxReachableKey=curKey;
+  for(let i=curIdx+1;i<=targetIdx;i++){if(STAR_TABLE[TIERS_ALL[i]].s<=totalOwned)maxReachableKey=TIERS_ALL[i];else break;}
+  if(maxReachableKey&&maxReachableKey!==curKey){
+    const[mc,ms]=maxReachableKey.split('-');
+    const maxConsumed=STAR_TABLE[maxReachableKey].s;
+    const maxCost=maxConsumed-curConsumed;
+    const maxLeftover=totalOwned-maxConsumed;
+    const btn2=document.createElement('button');btn2.className='consume-btn max';
+    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc)+'">'+TIER_LABEL_MAP[mc]+' '+(parseInt(ms)===0?'0★':STAR_LABELS[parseInt(ms)-1])+'</span>'
+      +' <span style="font-size:0.85em;opacity:0.7;">— uses '+maxCost+' shards, '+maxLeftover+' left over</span>';
+    btn2.onclick=()=>consumeShards(maxReachableKey,curConsumed,totalOwned);
+    container.appendChild(btn2);
+    container.style.display='flex';
+  }
+}
+
+function consumeShards(newLevelKey,prevConsumed,totalOwned){
+  const[nc,ns]=newLevelKey.split('-');
+  const newConsumed=STAR_TABLE[newLevelKey].s;
+  const leftover=Math.max(0,totalOwned-newConsumed);
+  document.getElementById('ownedColor').value=nc;
+  document.getElementById('ownedStar').value=ns;
+  document.getElementById('shards').value=leftover;
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value)||1;
+  buildColorPicker('targetColorPicker','targetColor',false,tc);
+  buildStarPicker('targetStarPicker','targetStar',ts,tc);
+  updatePlannerCurrentLevel();
+  const osl=document.getElementById('ownedShardLabel');
+  if(osl){const newEntry=STAR_TABLE[newLevelKey];osl.textContent=newEntry.s+' shards already consumed · '+leftover+' remaining';}
+  // Persist back to champData
+  const champId=document.getElementById('champ-dropdown').value;
+  if(champId){
+    champData[champId]={...(champData[champId]||{}),color:nc,star:ns,shards:leftover};
+    saveChampData();
+    populateChampDropdown();
+    renderCollection();
+  }
+  calculate();saveState();
+}
+
+// ── REVERSE CALCULATOR ────────────────────────────────────────────────────────
+function stepReverse(d){const el=document.getElementById('reverse-anvils');el.value=Math.max(0,(parseInt(el.value)||0)+d);calcReverse();calculate();}
+
+function calcReverse(){
+  const anvils=Math.max(0,parseInt(document.getElementById('reverse-anvils').value)||0);
+  const resultsEl=document.getElementById('reverse-reach');
+  if(anvils===0){if(resultsEl)resultsEl.innerHTML='';return;}
+  const oc=document.getElementById('ownedColor').value;
+  const os=parseInt(document.getElementById('ownedStar').value);
+  const ownedShards=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  const alreadyNL=Math.max(0,parseInt(document.getElementById('nonlimpulled').value)||0);
+  const mythicsSinceLimited=0;
+  const hasFirst=(oc!=='none'||ownedShards>0);
+  const curConsumed=oc==='none'?0:(STAR_TABLE[oc+'-'+os]||{s:0}).s;
+  const startIdx=oc==='none'?-1:TIERS_ALL.indexOf(oc+'-'+os);
+  // Expected (MC)
+  let expTier=null,expNextTier=null,expNextProb=null;
+  for(let i=startIdx+1;i<TIERS_ALL.length;i++){
+    const ntShards=STAR_TABLE[TIERS_ALL[i]].s;
+    if(ntShards-curConsumed-ownedShards<=0){expTier=TIERS_ALL[i];continue;}
+    const mc=runMC(ntShards-curConsumed,hasFirst,alreadyNL,pLD,pNLD,eSE,eSL,2000,ownedShards);
+    if(mc.median<=anvils){expTier=TIERS_ALL[i];expNextTier=null;expNextProb=null;}
+    else if(!expNextTier){
+      expNextTier=TIERS_ALL[i];
+      if(anvils>=mc.median)expNextProb=50;
+      else if(anvils>=mc.low)expNextProb=Math.round(50-(mc.median-anvils)/(mc.median-mc.low)*25);
+      else expNextProb=null;
+    }
+  }
+  // Guaranteed (worst case)
+  const mythicsLeft=Math.max(1,4-mythicsSinceLimited);
+  const dpLFirst=mythicsLeft*50,dpLFull=200,gbnl=2,nlpcFirst=mythicsLeft-1,nlpc=3;
+  const scbFirst=nlpcFirst*gbnl,scb=nlpc*gbnl;
+  let guarTier=null;
+  for(let i=startIdx+1;i<TIERS_ALL.length;i++){
+    const ntShards=STAR_TABLE[TIERS_ALL[i]].s;
+    if(ntShards-curConsumed-ownedShards<=0){guarTier=TIERS_ALL[i];continue;}
+    const goal=ntShards-curConsumed;
+    let simAcc=ownedShards,simAnvils=0,simFc=hasFirst,simFirst=true;
+    while(simAcc<goal){const cd=simFirst?dpLFirst:dpLFull,cb=simFirst?scbFirst:scb;if(simAnvils+cd>anvils)break;simAcc+=(simFc?40:0)+cb;simAnvils+=cd;simFc=true;simFirst=false;}
+    if(simAcc>=goal)guarTier=TIERS_ALL[i];
+  }
+  // Display
+  const expKey=expTier;const guarKey=guarTier;
+  const expShards=expKey?STAR_TABLE[expKey].s:curConsumed;
+  const guarShards=guarKey?STAR_TABLE[guarKey].s:curConsumed;
+  const expShardsNeeded=Math.max(0,expShards-curConsumed-ownedShards);
+  const guarShardsNeeded=Math.max(0,guarShards-curConsumed-ownedShards);
+  const expNext=nextTierCost(expKey);
+  const guarNext=nextTierCost(guarKey);
+  const expColor=expKey?tierColor(expKey.split('-')[0]):'var(--text-dim)';
+  const guarColor=guarKey?tierColor(guarKey.split('-')[0]):'var(--text-dim)';
+  const expLabel=expKey?tierLabel(expKey):'None';
+  const guarLabel=guarKey?tierLabel(guarKey):'None';
+  const expEl=document.getElementById('reverse-expected-level');
+  const guarEl=document.getElementById('reverse-guaranteed-level');
+
+  // reach labels rendered in compact block below
+  // Breakdown
+  const expMythics=Math.round(anvils*pLD);
+  const guarMythics=Math.floor(anvils/50);
+  const guarLimited=Math.floor(guarMythics/4);
+  const expHighlightedPulls=Math.round(anvils*pNLD);
+  const expBonusShards=Math.round(expHighlightedPulls<=6?expHighlightedPulls*2.5:6*2.5+(expHighlightedPulls-6)*0.825);
+  const expCopyShards=expMythics>0?(hasFirst?expMythics*40:Math.max(0,expMythics-1)*40):0;
+  const expTotalShards=expCopyShards+expBonusShards;
+  // Probability from anvil reserve
+  const probHtml='';
+  // Render compact reach summary into progress panel
+  if(resultsEl){
+    const expC  = expColor;
+    const guarC = guarColor;
+    let html = '';
+    if(expLabel!=='None'){
+      html += '<span style="color:var(--text-dim);">Expected: </span><span style="color:'+expC+';font-weight:700;">'+expLabel+'</span>';
+      if(expNextTier&&expNextProb!==null){
+        const[nc2b,ns2b]=expNextTier.split('-');
+        const nLabel2b=TIER_LABEL_MAP[nc2b]+' '+(parseInt(ns2b)===0?'0★':STAR_LABELS[parseInt(ns2b)-1]);
+        html += '<span style="color:var(--text-dim);font-size:0.88em;"> → '+nLabel2b+' (~'+expNextProb+'%)</span>';
+      }
+    } else {
+      html += '<span style="color:var(--text-dim);">Not enough anvils to reach next level</span>';
+    }
+    if(guarLabel!=='None'){
+      html += '<br><span style="color:var(--text-dim);">Guaranteed: </span><span style="color:'+guarC+';font-weight:700;">'+guarLabel+'</span>';
+    }
+    resultsEl.innerHTML = html;
+  }
+}
+
+function worstCaseForGoal(tierKey,curConsumed,ownedShards,hasFirst,mythicsSinceLimited){
+  const goal=STAR_TABLE[tierKey].s-curConsumed;
+  const dpLFull=200,nlpc=3,gbnl=2;
+  const mythicsLeft=Math.max(1,4-mythicsSinceLimited);
+  const dpLFirst=mythicsLeft*50,nlpcFirst=mythicsLeft-1;
+  const scbFirst=nlpcFirst*gbnl,scb=nlpc*gbnl;
+  let anvils=0,acc=ownedShards,fc=hasFirst,firstCycle=true;
+  while(acc<goal){const cd=firstCycle?dpLFirst:dpLFull,cb=firstCycle?scbFirst:scb;acc+=(fc?40:0)+cb;anvils+=cd;fc=true;firstCycle=false;}
+  return anvils;
+}
+
+function nextTierCost(key){
+  if(!key)return null;
+  const idx=TIERS_ALL.indexOf(key);
+  if(idx<0||idx>=TIERS_ALL.length-1)return null;
+  const nextKey=TIERS_ALL[idx+1];
+  const cost=STAR_TABLE[nextKey].s-STAR_TABLE[key].s;
+  return{cost,label:tierLabel(nextKey)};
+}
+
+// ── MAIN CALCULATE ────────────────────────────────────────────────────────────
+function calculate(){
+  const champId=document.getElementById('champ-dropdown').value;
+  if(!champId){
+    const panel=document.getElementById('progress-panel');if(panel)panel.style.display='none';
+    const resultsEl=document.getElementById('results');if(resultsEl)resultsEl.innerHTML='';
+    const bannerEl=document.getElementById('goal-reached-banner');if(bannerEl){bannerEl.style.display='none';bannerEl.innerHTML='';}
+    const tabsEl=document.querySelector('.scenario-tabs');if(tabsEl)tabsEl.style.display='none';
+    return;
+  }
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value);
+  const oc=document.getElementById('ownedColor').value;
+  const os=parseInt(document.getElementById('ownedStar').value);
+  const ownedShards=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  const alreadyNL=Math.max(0,parseInt(document.getElementById('nonlimpulled').value)||0);
+  const mythicsSinceLastLimited=0;
+  // Reset banner
+  const bannerEl=document.getElementById('goal-reached-banner');
+  if(bannerEl){bannerEl.style.display='none';bannerEl.innerHTML='';}
+  const tabsEl=document.querySelector('.scenario-tabs');if(tabsEl)tabsEl.style.display='';
+  const tEntry=STAR_TABLE[tc+'-'+ts],oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
+  if(!tEntry)return;
+  const tShards=tEntry.s,oShards=oEntry?oEntry.s:0;
+  const shardTargetEl=document.getElementById('shardTargetLabel');
+  const ownedShardEl=document.getElementById('ownedShardLabel');
+  if(shardTargetEl)shardTargetEl.textContent=tEntry.s+' total shards · '+tEntry.c+' copies needed';
+  if(ownedShardEl)ownedShardEl.textContent=oc==='none'?'Starting from scratch':(oEntry.s===0?'Owned — 0 stars (no shards consumed yet)':oEntry.s+' shards already consumed');
+  const shardsNeeded=Math.max(0,tShards-oShards-ownedShards);
+  if(shardsNeeded<=0){
+    // GOAL REACHED
+    const TIERS_G=TIERS_ALL;
+    const tIdx=TIERS_G.indexOf(tc+'-'+ts);
+    const nextKey_g=tIdx<TIERS_G.length-1?TIERS_G[tIdx+1]:null;
+    let nextHtml='';
+    if(nextKey_g){
+      const hasFirst_g=(oc!=='none'||ownedShards>0);
+      const nextShards_g=STAR_TABLE[nextKey_g].s;
+      const nextGoal_g=nextShards_g-tShards;
+      const leftover_g=ownedShards-(tShards-oShards);
+      const shardsToNext=Math.max(0,nextShards_g-(oShards+ownedShards));
+      const[nc_g,ns_g]=nextKey_g.split('-');
+      const nextColor_g=tierColor(nc_g);
+      const nextLabel_g=TIER_LABEL_MAP[nc_g]+' '+(parseInt(ns_g)===0?'0★':STAR_LABELS[parseInt(ns_g)-1]);
+      const wcNext=shardsToNext<=0?0:worstCaseForGoal(nextKey_g,oShards,leftover_g,true,mythicsSinceLastLimited);
+      const mcNext=shardsToNext<=0?{median:0,low:0,high:0}:runMC(nextGoal_g,hasFirst_g,alreadyNL,pLD,pNLD,eSE,eSL,2000,leftover_g);
+      const revAnvils=parseInt(document.getElementById('reverse-anvils').value)||0;
+      let probHtml='';
+      if(revAnvils>0&&shardsToNext>0){
+          // prob removed
+      }
+      nextHtml='<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">'+
+        '<div style="font-family:Share Tech Mono,monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;">Next level beyond goal</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;">'+
+          '<div style="background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">'+
+            '<div style="font-family:Share Tech Mono,monospace;font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:4px;">NEXT LEVEL</div>'+
+            '<div style="font-family:Oswald,sans-serif;font-size:1.3rem;color:'+nextColor_g+'">'+nextLabel_g+'</div>'+
+            '<div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;">'+shardsToNext+' shards needed</div>'+
+          '</div>'+
+          '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(79,195,247,0.25);border-radius:8px;padding:10px;text-align:center;">'+
+            '<div style="font-family:Share Tech Mono,monospace;font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:4px;">EXPECTED ANVILS</div>'+
+            '<div style="font-family:Oswald,sans-serif;font-size:1.3rem;color:var(--accent)">'+(shardsToNext<=0?0:mcNext.median)+'</div>'+
+            (shardsToNext>0&&mcNext.low<mcNext.high?'<div style="font-size:0.62rem;color:var(--text-dim);margin-top:2px;">'+mcNext.low+' – '+mcNext.high+'</div>':'<div style="font-size:0.7rem;color:var(--green);margin-top:2px;">Already covered</div>')+
+          '</div>'+
+          '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(240,165,0,0.25);border-radius:8px;padding:10px;text-align:center;">'+
+            '<div style="font-family:Share Tech Mono,monospace;font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:4px;">WORST CASE ANVILS</div>'+
+            '<div style="font-family:Oswald,sans-serif;font-size:1.3rem;color:var(--legendary)">'+(shardsToNext<=0?0:wcNext)+'</div>'+
+            '<div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;">guarantee only</div>'+
+          '</div>'+
+        '</div>'+probHtml+'</div>';
+    }
+    if(bannerEl){
+      bannerEl.style.display='block';
+      bannerEl.innerHTML='<div class="panel" style="border-color:var(--green);">'+
+        '<div style="text-align:center;">'+
+        '<div style="font-family:Oswald,sans-serif;font-size:2rem;color:var(--green);margin-bottom:6px;">GOAL REACHED!</div>'+
+        '<div style="font-size:0.88rem;color:var(--text-dim)">You already have enough shards to reach <span style="color:'+tierColor(tc)+'">'+CLABEL[tc]+' '+STARS[ts-1]+'</span>.</div>'+
+        nextHtml+'</div></div>';
+    }
+    if(tabsEl)tabsEl.style.display='none';
+    document.getElementById('results').innerHTML='';
+    updateProgressBar(oShards+ownedShards,tShards);
+    renderConsumeButtons();
+    if((parseInt(document.getElementById('reverse-anvils').value)||0)>0)calcReverse();
+    saveState();return;
+  }
+  const hasFirst=(oc!=='none'||ownedShards>0);
+  if(scenario==='guaranteed'){
+    const dpLFull=200;
+    const mythicsLeft=Math.max(1,4-mythicsSinceLastLimited);
+    const dpLFirst=mythicsLeft*50;
+    const nlpcFirst=mythicsLeft-1;
+    const nlpc=3;const gbnl=2;
+    const scbFirst=nlpcFirst*gbnl,scb=nlpc*gbnl;
+    let anvils=0,acc=ownedShards,fc=hasFirst,firstCycle=true;
+    while(acc<tShards-oShards){
+      const cycleDraws=firstCycle?dpLFirst:dpLFull;
+      const cycleBonus=firstCycle?scbFirst:scb;
+      acc+=(fc?40:0)+cycleBonus;anvils+=cycleDraws;fc=true;firstCycle=false;
+    }
+    const tm=Math.floor(anvils/50);
+    const fullCyclesAfterFirst=Math.max(0,Math.floor((anvils-dpLFirst)/dpLFull));
+    const lp=Math.min(tm,fullCyclesAfterFirst+1);
+    const nlp=Math.max(0,tm-lp);
+    const sfd=hasFirst?lp*40:Math.max(0,lp-1)*40;
+    const nextAnvilsG=calcNextLevelAnvils(tc,ts,oc,os,ownedShards,alreadyNL,'guaranteed',mythicsSinceLastLimited);
+    renderResults({anvils,shardsNeeded,tShards,oShards,ownedShards,
+      label2:CLABEL[tc]+' '+STARS[ts-1],tm,lp,nlp,sfd,sfb:Math.round(nlp*eSL),
+      label:'Worst-Case (Guarantee Only)',ml:'Guaranteed Mythic Pulls',ms:'1 per 50 draws',noteClass:'nb-worst',
+      nextAnvils:nextAnvilsG,
+      note:'Worst case assumes: every Limited uses the full 3-fail guarantee (up to 4\xd750 draws), highlighted bonus rolls always land on the minimum (2 shards — guaranteed in the early window), and Legendary guaranteed every 10 draws. Deterministic — no randomness.'});
+  }else{
+    const goal=tShards-oShards;
+    const mcResult=runMC(goal,hasFirst,alreadyNL,pLD,pNLD,eSE,eSL,2000,ownedShards);
+    const draws=mcResult.median,drawsLow=mcResult.low,drawsHigh=mcResult.high;
+    const tm=Math.round(draws*pM),lp=Math.round(draws*pLD),nlp=Math.round(draws*pNLD);
+    const ab=alreadyNL>=6?eSL:nlp<=(6-alreadyNL)?eSE:(eSE*(6-alreadyNL)+eSL*Math.max(0,nlp-(6-alreadyNL)))/nlp;
+    const sfd=hasFirst?lp*40:Math.max(0,lp-1)*40;
+    const _nextE=calcNextLevelAnvils(tc,ts,oc,os,ownedShards,alreadyNL,'expected',mythicsSinceLastLimited);
+    const nextAnvilsE=_nextE&&typeof _nextE==='object'?_nextE:null;
+    renderResults({anvils:draws,anvilsLow:drawsLow,anvilsHigh:drawsHigh,shardsNeeded,tShards,oShards,ownedShards,
+      label2:CLABEL[tc]+' '+STARS[ts-1],tm,lp,nlp,sfd,sfb:Math.round(nlp*ab),
+      label:'Expected Average',ml:'Expected Mythic Pulls',ms:'at 3.84% rate',
+      nextAnvils:nextAnvilsE,
+      note:'Based on 2,000 simulated players using a fixed seed — same inputs always give the same result. The range shows where the middle 50% of players land. Think of it like asking 2,000 kids to each play the game: the big number is the most typical outcome, and the range shows how lucky or unlucky you could realistically get.'});
+  }
+}
+
+function renderResults(d){
+  updateProgressBar(d.oShards+d.ownedShards,d.tShards);
+  document.getElementById('results').innerHTML=
+    (d.note?'<div class="note-banner '+(d.noteClass||'nb-expected')+'">'+d.note+'</div>':'')+
+    '<div class="results-grid">'+
+      '<div class="result-card highlight">'+
+        '<div class="card-label">Anvils to Target</div>'+
+        (d.anvilsLow!==undefined
+          ?'<div class="card-value">'+d.anvils.toLocaleString()+'</div>'+
+            '<div class="card-sub" style="color:var(--accent);font-family:Share Tech Mono,monospace;font-size:0.68rem;">'+d.anvilsLow.toLocaleString()+' – '+d.anvilsHigh.toLocaleString()+'</div>'+
+            '<div class="card-sub" style="margin-top:2px;">median &middot; typical range (50% of players)</div>'
+          :'<div class="card-value">'+d.anvils.toLocaleString()+'</div>'
+        )+
+      '</div>'+
+      (d.nextAnvils!==null&&d.nextAnvils!==undefined
+        ?'<div class="result-card" style="border-color:rgba(79,195,247,0.3);">'+
+            '<div class="card-label">Anvils to Next Level</div>'+
+            (d.nextAnvils&&d.nextAnvils.median!==undefined
+              ?'<div class="card-value" style="font-size:2rem">'+d.nextAnvils.median.toLocaleString()+'</div>'+
+                '<div class="card-sub" style="color:var(--accent);font-family:Share Tech Mono,monospace;font-size:0.68rem;">'+d.nextAnvils.low.toLocaleString()+' – '+d.nextAnvils.high.toLocaleString()+'</div>'+
+                '<div class="card-sub" style="margin-top:2px;">median · typical range (50% of players)</div>'
+              :'<div class="card-value" style="font-size:2rem">'+(d.nextAnvils||0).toLocaleString()+'</div>'
+            )+
+          '</div>'
+        :'')+
+      '<div class="result-card"><div class="card-label">'+d.ml+'</div><div class="card-value" style="font-size:2rem">'+d.tm+'</div><div class="card-sub">'+d.ms+'</div></div>'+
+      '<div class="result-card"><div class="card-label">Direct Featured Pulls</div><div class="card-value" style="font-size:2rem">'+d.lp+'</div><div class="card-sub">non-limited Mythics: '+d.nlp+'</div></div>'+
+    '</div>'+
+    '';
+  if((parseInt(document.getElementById('reverse-anvils').value)||0)>0)calcReverse();
+  renderConsumeButtons();
+  saveState();
+}
+
+// ── CHAMPION COLLECTION ───────────────────────────────────────────────────────
+const CHAMPIONS=[
+  // Limited Mythic
+  {id:'superman',         name:'Superman',          rarity:'Limited Mythic', class:'Warrior',     power:'Physical',   teams:['Justice League','Superman Family','Metahuman']},
+  {id:'martian_manhunter',name:'Martian Manhunter', rarity:'Limited Mythic', class:'Warrior',     power:'Physical',   teams:['Justice League','Metahuman','Outsiders']},
+  {id:'nightwing',        name:'Nightwing',         rarity:'Limited Mythic', class:'Assassin',    power:'Physical',   teams:['Bat Family','Teen Titans','Weapon Master']},
+  {id:'deathstroke',      name:'Deathstroke',       rarity:'Limited Mythic', class:'Assassin',    power:'Physical',   teams:['League of Assassins','Weapon Master','Legion of Doom']},
+  {id:'zatanna',          name:'Zatanna',            rarity:'Limited Mythic', class:'Supporter',  power:'Spiritual',  teams:['Justice League Dark','Energy Wielder']},
+  {id:'constantine',      name:'Constantine',        rarity:'Limited Mythic', class:'Magical',    power:'Spiritual',  teams:['Justice League Dark','Energy Wielder']},
+  {id:'scarecrow',        name:'Scarecrow',          rarity:'Limited Mythic', class:'Guardian',   power:'Physical',   teams:['Legion of Doom','Weapon Master',"Arkham's Most Wanted"]},
+  {id:'sinestro',         name:'Sinestro',           rarity:'Limited Mythic', class:'Magical',    power:'Spiritual',  teams:['Legion of Doom','Energy Wielder']},
+  {id:'starfire',         name:'Starfire',           rarity:'Limited Mythic', class:'Supporter',  power:'Spiritual',  teams:['Teen Titans','Energy Wielder','Outsiders']},
+  {id:'superboy',         name:'Superboy',           rarity:'Limited Mythic', class:'Supporter',  power:'Physical',   teams:['Superman Family','Teen Titans','Metahuman']},
+  {id:'hippolyta',        name:'Queen Hippolyta',    rarity:'Limited Mythic', class:'Guardian',   power:'Physical',   teams:['Amazons','Metahuman']},
+  {id:'lobo',             name:'Lobo',               rarity:'Limited Mythic', class:'Firepower',  power:'Physical',   teams:['Suicide Squad','Weapon Master']},
+  {id:'hawkgirl',         name:'Hawkgirl',           rarity:'Limited Mythic', class:'Warrior',    power:'Physical',   teams:['Birds of Prey','Weapon Master','Justice League']},
+  {id:'artemis',          name:'Artemis',            rarity:'Limited Mythic', class:'Guardian',   power:'Physical',   teams:['Amazons','Metahuman']},
+  {id:'terra',            name:'Terra',              rarity:'Limited Mythic', class:'Guardian',   power:'Physical',   teams:['Teen Titans','Outsiders','Metahuman']},
+  {id:'rasalghul',        name:"Ra's al Ghul",       rarity:'Limited Mythic', class:'Assassin',   power:'Physical',   teams:['League of Assassins','Metahuman']},
+  {id:'supergirl',        name:'Supergirl',          rarity:'Limited Mythic', class:'Warrior',    power:'Physical',   teams:['Superman Family','Metahuman']},
+  {id:'wally_west',       name:'Wally West',         rarity:'Limited Mythic', class:'Firepower',  power:'Physical',   teams:['Teen Titans','Flash Family','Metahuman']},
+  {id:'swamp_thing',      name:'Swamp Thing',        rarity:'Limited Mythic', class:'Warrior',    power:'Spiritual',  teams:['Justice League Dark','Metahuman']},
+  {id:'riddler',          name:'The Riddler',        rarity:'Limited Mythic', class:'Supporter',  power:'Physical',   teams:["Arkham's Most Wanted",'Weapon Master']},
+  {id:'joker',            name:'The Joker',          rarity:'Limited Mythic', class:'Intimidator',power:'Physical',   teams:["Arkham's Most Wanted",'Legion of Doom']},
+  // Mythic
+  {id:'arsenal',          name:'Arsenal',            rarity:'Mythic',         class:'Firepower',  power:'Physical',   teams:['Teen Titans','Weapon Master','Outsiders']},
+  {id:'aquaman',          name:'Aquaman',            rarity:'Mythic',         class:'Firepower',  power:'Physical',   teams:['Justice League','Metahuman','Atlanteans']},
+  {id:'batgirl',          name:'Batgirl',            rarity:'Mythic',         class:'Supporter',  power:'Physical',   teams:['Birds of Prey','Weapon Master','Bat Family']},
+  {id:'batman',           name:'Batman',             rarity:'Mythic',         class:'Warrior',    power:'Physical',   teams:['Bat Family','Weapon Master','Justice League']},
+  {id:'bane',             name:'Bane',               rarity:'Mythic',         class:'Guardian',   power:'Physical',   teams:["Arkham's Most Wanted",'League of Shadows']},
+  {id:'black_canary',     name:'Black Canary',       rarity:'Mythic',         class:'Intimidator',power:'Physical',   teams:['Birds of Prey','Metahuman']},
+  {id:'cyborg',           name:'Cyborg',             rarity:'Mythic',         class:'Intimidator',power:'Physical',   teams:['Teen Titans','Weapon Master','Justice League']},
+  {id:'deadshot',         name:'Deadshot',           rarity:'Mythic',         class:'Firepower',  power:'Physical',   teams:['Suicide Squad','Weapon Master']},
+  {id:'doctor_fate',      name:'Doctor Fate',        rarity:'Mythic',         class:'Guardian',   power:'Spiritual',  teams:['Justice League Dark','Energy Wielder']},
+  {id:'donna_troy',       name:'Donna Troy',         rarity:'Mythic',         class:'Warrior',    power:'Physical',   teams:['Amazons','Teen Titans','Metahuman']},
+  {id:'flash',            name:'The Flash',          rarity:'Mythic',         class:'Supporter',  power:'Physical',   teams:['Justice League','Flash Family','Metahuman']},
+  {id:'green_lantern',    name:'Green Lantern',      rarity:'Mythic',         class:'Supporter',  power:'Spiritual',  teams:['Justice League','Energy Wielder','Green Lantern Corps'], paywall:true},
+  {id:'harley_quinn',     name:'Harley Quinn',       rarity:'Mythic',         class:'Warrior',    power:'Physical',   teams:['Birds of Prey',"Arkham's Most Wanted",'Suicide Squad']},
+  {id:'krypto',           name:'Krypto',             rarity:'Mythic',         class:'Supporter',  power:'Physical',   teams:['Superman Family','Metahuman']},
+  {id:'lex_luthor',       name:'Lex Luthor',         rarity:'Mythic',         class:'Firepower',  power:'Physical',   teams:['Legion of Doom','Weapon Master']},
+  {id:'nurse_harley',     name:'Nurse Harley',       rarity:'Mythic',         class:'Supporter',  power:'Physical',   teams:["Birds of Prey","Arkham's Most Wanted"], paywall:true},
+  {id:'penguin',          name:'The Penguin',        rarity:'Mythic',         class:'Intimidator',power:'Physical',   teams:["Arkham's Most Wanted",'Weapon Master']},
+  {id:'poison_ivy',       name:'Poison Ivy',         rarity:'Mythic',         class:'Supporter',  power:'Spiritual',  teams:["Birds of Prey","Energy Wielder","Arkham's Most Wanted"]},
+  {id:'raven',            name:'Raven',              rarity:'Mythic',         class:'Supporter',  power:'Spiritual',  teams:['Teen Titans','Energy Wielder','Justice League Dark']},
+  {id:'red_robin',        name:'Red Robin',          rarity:'Mythic',         class:'Guardian',   power:'Physical',   teams:['Teen Titans','Weapon Master','Bat Family']},
+  {id:'robin',            name:'Robin',              rarity:'Mythic',         class:'Assassin',   power:'Physical',   teams:['Teen Titans','Weapon Master','Bat Family']},
+  {id:'shazam',           name:'Shazam',             rarity:'Mythic',         class:'Guardian',   power:'Physical',   teams:['Justice League','Metahuman']},
+  {id:'stargirl',         name:'Stargirl',           rarity:'Mythic',         class:'Supporter',  power:'Physical',   teams:['Justice League','Metahuman']},
+  {id:'talia',            name:'Talia al Ghul',      rarity:'Mythic',         class:'Assassin',   power:'Physical',   teams:['League of Shadows','Weapon Master']},
+  {id:'two_face',         name:'Two-Face',           rarity:'Mythic',         class:'Firepower',  power:'Physical',   teams:["Arkham's Most Wanted",'Weapon Master']},
+  {id:'wonder_girl',      name:'Wonder Girl',        rarity:'Mythic',         class:'Warrior',    power:'Physical',   teams:['Amazons','Teen Titans','Metahuman']},
+  // Legendary
+  {id:'atom',             name:'The Atom',           rarity:'Legendary',      class:'Warrior',    power:'Physical',   teams:['Teen Titans','Metahuman','Justice League']},
+  {id:'black_adam',       name:'Black Adam',         rarity:'Legendary',      class:'Magical',    power:'Spiritual',  teams:['Legion of Doom','Metahuman']},
+  {id:'captain_cold',     name:'Captain Cold',       rarity:'Legendary',      class:'Intimidator',power:'Physical',   teams:['Suicide Squad','Weapon Master','Legion of Doom']},
+  {id:'catwoman',         name:'Catwoman',           rarity:'Legendary',      class:'Warrior',    power:'Physical',   teams:['Birds of Prey','Weapon Master',"Arkham's Most Wanted"]},
+  {id:'green_arrow',      name:'Green Arrow',        rarity:'Legendary',      class:'Firepower',  power:'Physical',   teams:['Justice League','Weapon Master']},
+  {id:'killer_croc',      name:'Killer Croc',        rarity:'Legendary',      class:'Guardian',   power:'Physical',   teams:['Suicide Squad','Metahuman','Legion of Doom']},
+  {id:'mera',             name:'Mera',               rarity:'Legendary',      class:'Supporter',  power:'Physical',   teams:['Atlanteans','Energy Wielder','Justice League']},
+  {id:'red_hood',         name:'Red Hood',           rarity:'Legendary',      class:'Firepower',  power:'Physical',   teams:['League of Assassins','Weapon Master','Bat Family'], dualRarity:true},
+  {id:'vixen',            name:'Vixen',              rarity:'Legendary',      class:'Supporter',  power:'Physical',   teams:['Birds of Prey','Metahuman']},
+  {id:'wonder_woman',     name:'Wonder Woman',       rarity:'Legendary',      class:'Guardian',   power:'Physical',   teams:['Justice League','Metahuman','Justice League Dark']},
+  // Iconic
+  {id:'batman_dm',        name:'Batman Death Metal', rarity:'Iconic',         class:'Magical',    power:'Spiritual',  teams:['Death Metal','Bat Family','Energy Wielder'], paywall:true},
+  {id:'wonder_woman_dm',  name:'WW Death Metal',     rarity:'Iconic',         class:'Warrior',    power:'Physical',   teams:['Death Metal','Amazons','Metahuman'], paywall:true},
+];
+CHAMPIONS.sort((a,b)=>a.name.localeCompare(b.name));
+
+let champData={};
+const VALID_COLORS=new Set(['white','blue','purple','gold','red']);
+let cmChampId=null;
+
+function loadChampData(){try{const d=localStorage.getItem('mpc_champions');if(d)champData=JSON.parse(d);}catch(e){}}
+function saveChampData(){try{localStorage.setItem('mpc_champions',JSON.stringify(champData));}catch(e){}}
+loadChampData();
+// Sanitise any corrupted entries (e.g. star saved as non-numeric)
+(function sanitiseChampData(){
+  let dirty=false;
+  Object.keys(champData).forEach(id=>{
+    const d=champData[id];
+    if(!d)return;
+    if(!VALID_COLORS.has(d.color)){
+      // Keep entries with color:'none' if they have shards saved
+      if(d.color==='none'&&parseInt(d.shards)>0){return;}
+      delete champData[id];dirty=true;return;
+    }
+    const s=parseInt(String(d.star).trim());
+    const clean=isNaN(s)?'0':String(Math.max(0,Math.min(5,s)));
+    if(d.star!==clean){d.star=clean;dirty=true;}
+  });
+  if(dirty)saveChampData();
+})();
+
+function champStatus(id){const d=champData[id];if(!d||!d.color||d.color==='none'||!VALID_COLORS.has(d.color))return'not-owned';if(d.color==='red'&&parseInt(d.star)===5)return'maxed';return'owned';}
+function champLevelStr(id){
+  const d=champData[id];
+  if(!d||!d.color||d.color==='none')return'Not owned';
+  const s=parseInt(String(d.star).trim());
+  if(isNaN(s))return'0★';
+  if(s===0)return'0★';
+  const label=TIER_LABEL_MAP[d.color];
+  if(!label)return STAR_LABELS[s]||s+'★';
+  return label+' '+(STAR_LABELS[s]||s+'★');
+}
+
+// Custom dropdown — removed; these stubs keep callers working
+let _ccsOpen=false,_ccsSearch='';
+function switchSection(id){
+  document.querySelectorAll('.main-section').forEach(s=>s.classList.toggle('active',s.id==='section-'+id));
+  document.querySelectorAll('.main-nav-btn').forEach(b=>b.classList.toggle('active',b.id==='nav-'+id));
+  if(id==='collection') renderCollection();
+  try{localStorage.setItem('mpc_section',id);}catch(e){}
+}
+
+function toggleChampDropdown(){
+  const dd=document.getElementById('cs-dropdown');
+  const isOpen=dd.classList.contains('open');
+  if(isOpen){
+    dd.classList.remove('open');
+    document.getElementById('cs-chevron').textContent='▼';
+  } else {
+    dd.classList.add('open');
+    document.getElementById('cs-chevron').textContent='▲';
+    document.getElementById('cs-search').value='';
+    renderCCSList();
+    setTimeout(()=>document.getElementById('cs-search').focus(),50);
+  }
+}
+
+function closeCCS(){
+  document.getElementById('cs-dropdown').classList.remove('open');
+  document.getElementById('cs-chevron').textContent='▼';
+}
+
+function renderCCSList(){
+  const search=(document.getElementById('cs-search').value||'').toLowerCase().trim();
+  const selectedId=document.getElementById('champ-dropdown').value;
+  const list=CHAMPIONS.filter(c=>
+    (!search||c.name.toLowerCase().includes(search))
+  );
+  const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
+  document.getElementById('cs-list').innerHTML=list.map(c=>{
+    const imgSrc=CHAMP_IMGS[c.id]||'';
+    const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hue=c.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    const thumb=imgSrc
+      ?`<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top;">`
+      :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:hsl(${Math.abs(hue)%360},40%,22%);font-family:'Oswald',sans-serif;font-size:0.75rem;color:rgba(255,255,255,0.4);">${initials}</div>`;
+    const status=champStatus(c.id);
+    const d=champData[c.id]||{};
+    const levelStr=champLevelStr(c.id);
+    const shards=parseInt(d.shards)||0;
+    const levelInfo=status!=='not-owned'
+      ?`<span style="color:${tierColor(d.color||'white')};margin-left:4px;font-size:0.75em;">${levelStr}</span>${shards>0?`<span style="color:var(--green);margin-left:4px;font-size:0.75em;">+${shards}</span>`:''}`
+      :'';
+    return `<div class="cs-item${c.id===selectedId?' selected':''}" onclick="selectChamp('${c.id}');closeCCS();">
+      <div class="cs-item-thumb">${thumb}</div>
+      <div style="overflow:hidden;">
+        <div class="cs-item-name">${c.name}${levelInfo}</div>
+        <div class="cs-item-meta" style="color:${RARITY_COLOR[c.rarity]||'var(--text-dim)'};">${c.rarity} · ${c.class}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function populateChampDropdown(){
+  const id=document.getElementById('champ-dropdown').value;
+  const portrait=document.getElementById('cs-portrait');
+  const nameLabel=document.getElementById('cs-name-label');
+  const metaLabel=document.getElementById('cs-meta-label');
+  if(!id||!portrait){return;}
+  const meta=CHAMPIONS.find(c=>c.id===id);
+  const imgSrc=CHAMP_IMGS[id]||'';
+  const initials=meta?meta.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase():'?';
+  const hue=meta?meta.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360:0;
+  portrait.innerHTML=imgSrc
+    ?`<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top;">`
+    :`<div class="cs-portrait-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);">${initials}</div>`;
+  if(meta){
+    const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc'};
+    nameLabel.textContent=meta.name;
+    // Show level and shards in the meta line
+    const status=champStatus(id);
+    const d=champData[id]||{};
+    const shards=parseInt(d.shards)||0;
+    if(status!=='not-owned'){
+      const levelStr=champLevelStr(id);
+      const shardsStr=shards>0?` · ${shards} shards`:'';
+      metaLabel.innerHTML=`<span style="color:${RARITY_COLOR[meta.rarity]||'var(--text-dim)'}">${meta.rarity} · ${meta.class}</span><span style="color:${tierColor(d.color||'white')};margin-left:6px;">${levelStr}${shardsStr}</span>`;
+    } else {
+      metaLabel.textContent=meta.rarity+' · '+meta.class;
+      metaLabel.style.color=RARITY_COLOR[meta.rarity]||'var(--text-dim)';
+    }
+  } else {
+    nameLabel.textContent='Choose a champion';
+    metaLabel.textContent='Select to begin planning';
+    metaLabel.style.color='';
+    portrait.innerHTML='<div class="cs-portrait-fallback">?</div>';
+  }
+}
+
+function selectChamp(id){
+  document.getElementById('champ-dropdown').value=id;
+  populateChampDropdown();
+  loadSelectedChampion();
+}
+
+function updatePlannerCurrentLevel(){
+  const oc=document.getElementById('ownedColor').value;
+  const os=parseInt(document.getElementById('ownedStar').value)||0;
+  const el=document.getElementById('planner-current-level');
+  if(!el)return;
+  if(!oc||oc==='none'){el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>';return;}
+  const lvlStr=TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]);
+  el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`;
+}
+
+// Collection navigation — now just switches to collection tab
+function openCollection(){switchSection('collection');}
+function closeCollection(){switchSection('planner');}
+
+function loadChampIntoCalc(){
+  if(!cmChampId)return;
+  const mc=document.getElementById('cm-color').value;const ms=document.getElementById('cm-star').value;const sh=parseInt(document.getElementById('cm-shards').value)||0;
+  if(mc!=='none')champData[cmChampId]={color:mc,star:ms,shards:sh};
+  saveChampData();
+  document.getElementById('champ-dropdown').value=cmChampId;
+  populateChampDropdown();
+  closeChampModal();
+  switchSection('planner');
+  loadSelectedChampion();
+}
+
+function loadSelectedChampion(){
+  const id=document.getElementById('champ-dropdown').value;
+  const d=champData[id];
+  const isOwned=d&&d.color&&d.color!=='none';
+  const levelEl=document.getElementById('planner-current-level');
+  const settingsPanel=document.getElementById('planner-settings-panel');
+
+  if(!id){
+    if(settingsPanel)settingsPanel.style.display='none';
+    if(levelEl)levelEl.innerHTML='<span style="color:var(--text-dim);">No champion selected</span>';
+    document.getElementById('ownedColor').value='none';
+    document.getElementById('ownedStar').value='0';
+    document.getElementById('shards').value='0';
+    document.getElementById('targetColor').value='red';
+    document.getElementById('targetStar').value='5';
+  }else if(!isOwned){
+    if(settingsPanel)settingsPanel.style.display='';
+    if(levelEl)levelEl.innerHTML='<span style="color:var(--text-dim);">Not owned</span>';
+    document.getElementById('ownedColor').value='none';
+    document.getElementById('ownedStar').value='0';
+    document.getElementById('shards').value=d?d.shards||0:0;
+    document.getElementById('targetColor').value='white';
+    document.getElementById('targetStar').value='1';
+  }else{
+    if(settingsPanel)settingsPanel.style.display='';
+    const curStar=parseInt(d.star);
+    const curKey=d.color+'-'+curStar;
+    const curIdx=TIERS_ALL.indexOf(curKey);
+    const nextKey=curIdx<TIERS_ALL.length-1?TIERS_ALL[curIdx+1]:curKey;
+    const[nc,ns]=nextKey.split('-');
+    document.getElementById('ownedColor').value=d.color;
+    document.getElementById('ownedStar').value=curStar;
+    document.getElementById('shards').value=d.shards||0;
+    document.getElementById('targetColor').value=nc;
+    document.getElementById('targetStar').value=ns;
+    if(levelEl){
+      const lvlStr=champLevelStr(id);
+      levelEl.innerHTML=`<span style="color:${tierColor(d.color)};">${lvlStr}</span>`;
+    }
+  }
+
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value)||1;
+  buildColorPicker('targetColorPicker','targetColor',false,tc);
+  buildStarPicker('targetStarPicker','targetStar',ts,tc);
+  calculate();saveState();
+}
+
+// Collection page
+let collSort='rarity';
+let collDir='desc';
+let collOwnership='all';
+let collRarities=new Set(); // empty = no rarity filter (show all)
+let collPaywall=false;
+
+function setCollOwnership(f,btn){
+  collOwnership=f;
+  document.querySelectorAll('.coll-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCollection();
+}
+
+function toggleCollRarity(key,btn){
+  if(key==='paywall'){
+    collPaywall=!collPaywall;
+    btn.classList.toggle('active',collPaywall);
+  } else {
+    if(collRarities.has(key)){collRarities.delete(key);btn.classList.remove('active');}
+    else{collRarities.add(key);btn.classList.add('active');}
+  }
+  renderCollection();
+}
+
+// Legacy setCollFilter kept for any remaining callers
+function setCollFilter(f,btn){setCollOwnership(f,btn);}
+
+function setCollSort(s,btn){collSort=s;document.querySelectorAll('.coll-sort:not(#sort-asc):not(#sort-desc)').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCollection();}
+function setCollDir(d,btn){collDir=d;['sort-asc','sort-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',el.id==='sort-'+d);});renderCollection();}
+
+// Rarity rank for sorting (lower = higher priority)
+const RARITY_RANK={'Limited Mythic':0,'Mythic':1,'Legendary':2,'Iconic':3,'Epic':4};
+const RARITY_STRIP={'Limited Mythic':'linear-gradient(90deg,#d42b2b,#f0a500)','Mythic':'linear-gradient(90deg,#d42b2b,#6b1515)','Legendary':'linear-gradient(90deg,#f0a500,#7a5200)','Iconic':'linear-gradient(90deg,#c084fc,#6b21a8)','Epic':'linear-gradient(90deg,#4a5ab5,#1e2a5e)'};
+
+// Max shards for any champion = red-5 = 1000
+const MAX_SHARD_TOTAL = 1000;
+
+function champProgressPct(id){
+  const d=champData[id];
+  if(!d||!d.color||d.color==='none') return 0;
+  const key=d.color+'-'+(parseInt(d.star)||0);
+  const consumed=(STAR_TABLE[key]||{s:0}).s;
+  const shards=parseInt(d.shards)||0;
+  return Math.min(100,Math.round(((consumed+shards)/MAX_SHARD_TOTAL)*100));
+}
+
+function renderCollection(){
+  const search=(document.getElementById('coll-search').value||'').toLowerCase().trim();
+  let list=CHAMPIONS.filter(c=>{
+    if(search&&!c.name.toLowerCase().includes(search))return false;
+    const s=champStatus(c.id);
+
+    // Ownership filter (radio)
+    if(collOwnership==='owned'&&s!=='owned'&&s!=='maxed')return false;
+    if(collOwnership==='not-owned'&&s!=='not-owned')return false;
+    if(collOwnership==='levelable'){
+      if(s==='not-owned'||s==='maxed')return false;
+      const d=champData[c.id]||{};
+      const key=d.color&&d.color!=='none'?(d.color+'-'+(parseInt(d.star)||0)):null;
+      const consumed=key?(STAR_TABLE[key]||{s:0}).s:0;
+      const shards=parseInt(d.shards)||0;
+      const curIdx=key?TIERS_ALL.indexOf(key):-1;
+      if(curIdx<0||curIdx>=TIERS_ALL.length-1)return false;
+      if((consumed+shards)<STAR_TABLE[TIERS_ALL[curIdx+1]].s)return false;
+    }
+
+    // Paywall checkbox
+    if(collPaywall&&!c.paywall)return false;
+
+    // Rarity checkboxes (empty = show all)
+    if(collRarities.size>0){
+      const r=c.rarity;
+      let match=false;
+      if(collRarities.has('iconic')&&r==='Iconic')match=true;
+      if(collRarities.has('limited')&&r==='Limited Mythic')match=true;
+      if(collRarities.has('mythic')&&r==='Mythic')match=true;
+      if(collRarities.has('legendary')&&r==='Legendary')match=true;
+      if(!match)return false;
+    }
+
+    return true;
+  });
+
+  const dir=collDir==='asc'?1:-1;
+
+  // Sorting
+  if(collSort==='name'){
+    list.sort((a,b)=>-dir*a.name.localeCompare(b.name));
+  } else if(collSort==='rarity'){
+    list.sort((a,b)=>{
+      const rd=(RARITY_RANK[a.rarity]??9)-(RARITY_RANK[b.rarity]??9);
+      return (collDir==='asc'?-1:1)*(rd!==0?rd:a.name.localeCompare(b.name));
+    });
+  } else if(collSort==='progress'){
+    // Sort by shards consumed (level progression)
+    list.sort((a,b)=>{
+      const da=champData[a.id]||{}, db=champData[b.id]||{};
+      const keyA=da.color&&da.color!=='none'?(da.color+'-'+(parseInt(da.star)||0)):null;
+      const keyB=db.color&&db.color!=='none'?(db.color+'-'+(parseInt(db.star)||0)):null;
+      const ca=keyA?(STAR_TABLE[keyA]||{s:0}).s:0;
+      const cb=keyB?(STAR_TABLE[keyB]||{s:0}).s:0;
+      return dir*(ca-cb)||a.name.localeCompare(b.name);
+    });
+  } else if(collSort==='shards'){
+    // Sort by available (unspent) shards
+    list.sort((a,b)=>{
+      const sa=parseInt((champData[a.id]||{}).shards)||0;
+      const sb=parseInt((champData[b.id]||{}).shards)||0;
+      return dir*(sa-sb)||a.name.localeCompare(b.name);
+    });
+  }
+
+  const owned=CHAMPIONS.filter(c=>champStatus(c.id)!=='not-owned').length;
+  const maxed=CHAMPIONS.filter(c=>champStatus(c.id)==='maxed').length;
+  document.getElementById('coll-stats').innerHTML='<span>'+owned+'</span>/'+CHAMPIONS.length+' owned &nbsp;·&nbsp; <span>'+maxed+'</span> maxed';
+
+  const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
+
+  document.getElementById('coll-grid').innerHTML=list.map(c=>{
+    const s=champStatus(c.id);
+    const d=champData[c.id]||{};
+    const shards=parseInt(d.shards)||0;
+    const imgSrc=CHAMP_IMGS[c.id]||'';
+    const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hue=c.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    const avatarBg=`hsl(${Math.abs(hue)%360},40%,22%)`;
+    const paywallBadge=c.paywall?'<div class="cc-paywall-badge">$</div>':'';
+    const imgHtml=imgSrc
+      ?`<div class="cc-img-wrap">${paywallBadge}<img class="cc-img" src="${imgSrc}" alt="${c.name}"></div>`
+      :`<div class="cc-img-wrap">${paywallBadge}<div class="cc-img-fallback" style="background:${avatarBg};">${initials}</div></div>`;
+
+    let badge='',cardClass='coll-card';
+    if(s==='maxed'){badge='<div class="cc-badge maxed-b">MAX</div>';cardClass+=' maxed';}
+    else if(s==='owned'){badge='<div class="cc-badge owned-b">OWNED</div>';cardClass+=' owned';}
+
+    const rarityCol=RARITY_COLOR[c.rarity]||'var(--text-dim)';
+    const rarityStrip=RARITY_STRIP[c.rarity]||'linear-gradient(90deg,var(--border),var(--border))';
+
+    // Progress bar — full 1000-shard width, colored by tier
+    const key=d.color&&d.color!=='none'?(d.color+'-'+(parseInt(d.star)||0)):null;
+    const consumed=key?(STAR_TABLE[key]||{s:0}).s:0;
+    const totalShards=consumed+shards;
+    const showLabel=totalShards>0&&s!=='not-owned';
+
+    // Build segments: each color tier spans its shard range
+    const TIER_RANGES=[
+      {color:'white',  hex:'#c8c8c8', from:0,   to:40},
+      {color:'blue',   hex:'#3b82f6', from:40,  to:160},
+      {color:'purple', hex:'#a855f7', from:160, to:360},
+      {color:'gold',   hex:'#eab308', from:360, to:600},
+      {color:'red',    hex:'#ef4444', from:600, to:1000},
+    ];
+    let barSegs='';
+    for(const t of TIER_RANGES){
+      const tW=((t.to-t.from)/MAX_SHARD_TOTAL*100).toFixed(3);
+      const cEnd=Math.min(consumed,t.to)-Math.min(consumed,t.from);
+      const oStart=Math.max(consumed,t.from), oEnd=Math.min(consumed+shards,t.to);
+      const oLen=Math.max(0,oEnd-oStart);
+      const remLen=(t.to-t.from)-cEnd-oLen;
+      const cPct=(cEnd/(t.to-t.from)*100).toFixed(3);
+      const oPct=(oLen/(t.to-t.from)*100).toFixed(3);
+      const rPct=(remLen/(t.to-t.from)*100).toFixed(3);
+      // consumed = solid full color, owned = 35% opacity + dashed border top, remainder = 8% opacity
+      barSegs+=`<div style="width:${tW}%;height:100%;display:flex;flex-shrink:0;">
+        ${cEnd>0?`<div style="width:${cPct}%;background:${t.hex};"></div>`:''}
+        ${oLen>0?`<div style="width:${oPct}%;background:${t.hex};opacity:0.35;border-top:1px dashed ${t.hex};box-sizing:border-box;"></div>`:''}
+        ${remLen>0?`<div style="width:${rPct}%;background:${t.hex};opacity:0.08;"></div>`:''}
+      </div>`;
+    }
+    const progHtml=`
+      ${showLabel?`<div class="cc-prog-label"><span>${totalShards}/${MAX_SHARD_TOTAL}</span><span>${Math.round((totalShards/MAX_SHARD_TOTAL)*100)}%</span></div>`:''}
+      <div class="cc-prog-wrap" style="margin-top:${showLabel?0:8}px;">
+        <div style="display:flex;height:100%;width:100%;">${barSegs}</div>
+      </div>`;
+
+    // Rarity border color for card
+    const RARITY_BORDER={
+      'Limited Mythic':'rgba(212,43,43,0.6)',
+      'Mythic':'rgba(212,43,43,0.35)',
+      'Legendary':'rgba(240,165,0,0.5)',
+      'Iconic':'rgba(192,132,252,0.5)',
+    };
+    const RARITY_GLOW={
+      'Limited Mythic':'0 4px 18px rgba(212,43,43,0.28),0 0 0 0 transparent',
+      'Mythic':'0 4px 16px rgba(212,43,43,0.18)',
+      'Legendary':'0 4px 16px rgba(240,165,0,0.18)',
+      'Iconic':'0 4px 16px rgba(192,132,252,0.18)',
+    };
+    const baseBorder=s==='not-owned'?'rgba(255,255,255,0.07)':(RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.12)');
+    const baseGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none'):'none';
+    const hoverBorder=RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.4)';
+    const hoverGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none').replace('0.28','0.45').replace('0.18','0.35'):'0 4px 14px rgba(79,195,247,0.15)';
+
+    return `<div class="${cardClass}" style="border-color:${baseBorder};box-shadow:${baseGlow};"
+      onmouseenter="this.style.outline='1.5px solid ${hoverBorder}';this.style.outlineOffset='-1px';this.style.boxShadow='${hoverGlow}';this.style.transform='translateY(-3px)'"
+      onmouseleave="this.style.outline='';this.style.boxShadow='${baseGlow}';this.style.transform=''"
+      onclick="openChampModal('${c.id}')">
+      <div class="cc-rarity-strip" style="background:${rarityStrip};opacity:${s==='not-owned'?'0.35':'1'};"></div>
+      ${badge}${imgHtml}
+      <div class="cc-info">
+        <div class="cc-name">${c.name}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.rarity||''}</div>
+        <div class="cc-status" style="margin-top:3px;display:flex;justify-content:space-between;align-items:baseline;gap:2px;">
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${s!=='not-owned'?'color:'+tierColor((champData[c.id]||{}).color||'white'):''}">${champLevelStr(c.id)}</span>
+          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${shards}s</span>`:''}
+        </div>
+      </div>
+      ${progHtml}
+    </div>`;
+  }).join('')||'<div style="color:var(--text-dim);font-size:0.82rem;padding:20px;grid-column:1/-1;text-align:center;">No champions match filter</div>';
+}
+
+function openChampModal(id){
+  cmChampId=id;const c=CHAMPIONS.find(x=>x.id===id);
+  const d=champData[id]||{color:'none',star:1,shards:0};
+  document.getElementById('champ-modal-title').textContent=c.name;
+  // Metadata strip
+  const metaEl=document.getElementById('champ-modal-meta');
+  if(metaEl&&c){
+    const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
+    const rc=RARITY_COLOR[c.rarity]||'var(--text-dim)';
+    const teamsStr=(c.teams&&c.teams.length)?c.teams.join(' · '):'';
+    metaEl.innerHTML=
+      `<div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;font-weight:700;color:${rc};letter-spacing:1px;">${c.rarity||''}${c.class?' · '+c.class:''}</div>`+
+      (c.power?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-dim);margin-top:2px;">${c.power}</div>`:'') +
+      (teamsStr?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-top:3px;line-height:1.5;">${teamsStr}</div>`:'');
+  }
+  document.getElementById('cm-shards').value=d.shards||0;
+  const mc=d.color||'none', ms=(d.star!=null&&d.star!=='')?parseInt(d.star):1;
+  document.getElementById('cm-color').value=mc;document.getElementById('cm-star').value=ms;
+  buildColorPicker('cmColorPicker','cm-color',true,mc);buildStarPicker('cmStarPicker','cm-star',ms,mc);
+  const sp=document.getElementById('cmStarPicker');sp.style.opacity=mc==='none'?'0.3':'1';sp.style.pointerEvents=mc==='none'?'none':'';
+  const mSrc=CHAMP_IMGS[id]||'';const modalImgEl=document.getElementById('champ-modal-portrait');
+  if(modalImgEl){if(mSrc){modalImgEl.src=mSrc;modalImgEl.style.display='block';}else{modalImgEl.style.display='none';}}
+  // Rarity toggle for dual-rarity champions (Legendary/Mythic upgrade)
+  const rarityRow = document.getElementById('cm-rarity-row');
+  const raritySelect = document.getElementById('cm-rarity-select');
+  if(rarityRow && raritySelect){
+    if(c && c.dualRarity){
+      rarityRow.style.display='flex';
+      const saved = (champData[id]||{}).rarity||'Legendary';
+      raritySelect.value = saved;
+    } else {
+      rarityRow.style.display='none';
+    }
+  }
+  // Paywall badge
+  const paywallBadge = document.getElementById('cm-paywall-badge');
+  if(paywallBadge) paywallBadge.style.display = (c&&c.paywall) ? 'block' : 'none';
+  updateCMLevelLabel();
+  renderCMConsumeButtons();
+  document.getElementById('champ-modal-overlay').classList.add('active');
+}
+function updateCMLevelLabel(){
+  const mc=document.getElementById('cm-color').value;const ms=parseInt(document.getElementById('cm-star').value);
+  const el=document.getElementById('cm-level-label');
+  const shardsRow=document.getElementById('cm-shards-row');
+  const isOwned=mc&&mc!=='none';
+  if(shardsRow)shardsRow.style.display=isOwned?'':'none';
+  if(mc==='none'){el.textContent='Not owned';renderCMConsumeButtons();return;}
+  const key=mc+'-'+ms;const e=STAR_TABLE[key];
+  el.textContent=e?(ms===0?'Owned — 0 stars (no shards consumed yet)':e.s+' shards consumed'):'';
+  renderCMConsumeButtons();
+}
+
+function renderCMConsumeButtons(){
+  const container=document.getElementById('cm-consume-btns');
+  if(!container)return;
+  container.innerHTML='';
+  container.style.display='none';
+  const mc=document.getElementById('cm-color').value;
+  const ms=parseInt(document.getElementById('cm-star').value)||0;
+  const shards=Math.max(0,parseInt(document.getElementById('cm-shards').value)||0);
+  if(!mc||mc==='none'){return;}
+  const curKey=mc+'-'+ms;
+  const curIdx=TIERS_ALL.indexOf(curKey);
+  if(curIdx<0)return;
+  const curConsumed=(STAR_TABLE[curKey]||{s:0}).s;
+  const totalOwned=curConsumed+shards;
+  // Find next level
+  const nextIdx=curIdx+1;
+  if(nextIdx<TIERS_ALL.length){
+    const nextKey=TIERS_ALL[nextIdx];
+    const nextShards=STAR_TABLE[nextKey].s;
+    const nextNeeded=Math.max(0,nextShards-totalOwned);
+    const[nc,ns]=nextKey.split('-');
+    const canNext=nextNeeded===0;
+    const btn=document.createElement('button');
+    btn.className='consume-btn next';
+    btn.disabled=!canNext;
+    btn.style.opacity=canNext?'1':'0.4';
+    btn.style.cursor=canNext?'pointer':'not-allowed';
+    const nextCost=nextShards-curConsumed;
+    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+(parseInt(ns)===0?'0★':STAR_LABELS[parseInt(ns)-1])+'</span>'
+      +' <span style="font-size:0.85em;opacity:0.7;">— uses '+nextCost+' shards</span>'
+      +(canNext?'':' <span style="font-size:0.85em;color:var(--mythic);">(need '+nextNeeded+' more)</span>');
+    if(canNext)btn.onclick=()=>cmConsumeShards(nextKey,curConsumed,totalOwned);
+    container.appendChild(btn);
+    container.style.display='flex';
+  }
+  // Find max reachable (no target cap — go to red-5)
+  let maxKey=curKey;
+  for(let i=curIdx+1;i<TIERS_ALL.length;i++){
+    if(STAR_TABLE[TIERS_ALL[i]].s<=totalOwned)maxKey=TIERS_ALL[i];else break;
+  }
+  if(maxKey&&maxKey!==curKey){
+    const[mc2,ms2]=maxKey.split('-');
+    const btn2=document.createElement('button');
+    btn2.className='consume-btn max';
+    const maxConsumed=STAR_TABLE[maxKey].s;
+    const maxCost=maxConsumed-curConsumed;
+    const maxLeftover=totalOwned-maxConsumed;
+    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc2)+'">'+TIER_LABEL_MAP[mc2]+' '+(parseInt(ms2)===0?'0★':STAR_LABELS[parseInt(ms2)-1])+'</span>'
+      +' <span style="font-size:0.85em;opacity:0.7;">— uses '+maxCost+' shards, '+maxLeftover+' left over</span>';
+    btn2.onclick=()=>cmConsumeShards(maxKey,curConsumed,totalOwned);
+    container.appendChild(btn2);
+    container.style.display='flex';
+  }
+}
+
+function cmConsumeShards(newLevelKey,prevConsumed,totalOwned){
+  const[nc,ns]=newLevelKey.split('-');
+  const newConsumed=STAR_TABLE[newLevelKey].s;
+  const leftover=Math.max(0,totalOwned-newConsumed);
+  // Update modal pickers
+  document.getElementById('cm-color').value=nc;
+  document.getElementById('cm-star').value=ns;
+  document.getElementById('cm-shards').value=leftover;
+  buildColorPicker('cmColorPicker','cm-color',true,nc);
+  buildStarPicker('cmStarPicker','cm-star',parseInt(ns),nc);
+  const sp=document.getElementById('cmStarPicker');
+  if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
+  updateCMLevelLabel();
+}
+function stepCM(d){const el=document.getElementById('cm-shards');el.value=Math.max(0,(parseInt(el.value)||0)+d);renderCMConsumeButtons();autoSaveChamp();}
+function autoSaveChamp(){
+  if(!cmChampId)return;
+  const mc=document.getElementById('cm-color').value;
+  const rawStar=document.getElementById('cm-star').value;
+  const ms=String(isNaN(parseInt(rawStar))?0:parseInt(rawStar));
+  const sh=parseInt(document.getElementById('cm-shards').value)||0;
+  const raritySelect=document.getElementById('cm-rarity-select');
+  const champ=CHAMPIONS.find(c=>c.id===cmChampId);
+  const savedRarity=raritySelect&&champ&&champ.dualRarity?raritySelect.value:null;
+  if(mc==='none'){
+    if(sh>0){champData[cmChampId]={color:'none',star:'0',shards:sh,...(savedRarity?{rarity:savedRarity}:{})};}
+    else{delete champData[cmChampId];}
+  }else{
+    champData[cmChampId]={color:mc,star:ms,shards:sh,...(savedRarity?{rarity:savedRarity}:{})};
+  }
+  saveChampData();
+  // Sync to planner if this champ is currently selected there
+  const plannerChampId=document.getElementById('champ-dropdown').value;
+  if(plannerChampId===cmChampId){
+    const shardsEl=document.getElementById('shards');
+    if(shardsEl)shardsEl.value=sh;
+    saveState();
+  }
+  populateChampDropdown();renderCollection();
+}
+function closeChampModal(){
+  autoSaveChamp();
+  document.getElementById('champ-modal-overlay').classList.remove('active');
+  cmChampId=null;
+}
+function saveChamp(){closeChampModal();}
+function clearChamp(){
+  if(!cmChampId)return;
+  const btn=document.getElementById('cm-clear-btn');
+  if(!btn._confirm){
+    btn._confirm=true;
+    btn.textContent='Tap again to confirm';
+    btn.style.background='rgba(212,43,43,0.2)';
+    setTimeout(()=>{btn._confirm=false;btn.textContent='Clear Data';btn.style.background='';},3000);
+    return;
+  }
+  delete champData[cmChampId];
+  saveChampData();populateChampDropdown();renderCollection();
+  document.getElementById('champ-modal-overlay').classList.remove('active');
+  cmChampId=null;
+}
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+// ── CHAMPION METADATA (derived from CHAMPIONS for banner slot use) ────────────
+// Map CHAMPIONS to CHAMP_META format (synergies = teams)
+const CHAMP_META = CHAMPIONS.map(c=>({
+  id: c.id,
+  name: c.name,
+  rarity: c.rarity,
+  class: c.class||'',
+  power: c.power||'',
+  synergies: c.teams||[],
+  paywall: c.paywall||false,
+}));
+
+// Banner state: two banners A and B, active index
+let activeBannerIdx = 0;
+let bannerStates = [
+  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact'},
+  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact'}
+];
+// Alias for all existing code that reads/writes bannerState
+Object.defineProperty(window, 'bannerState', {
+  get(){ return bannerStates[activeBannerIdx]; },
+  set(v){ bannerStates[activeBannerIdx]=v; }
+});
+let _bsmSlotType = null;
+let _bsmSlotIdx  = null;
+
+function loadBannerState(){
+  try{
+    const d=localStorage.getItem('mpc_banners');
+    if(d){
+      const p=JSON.parse(d);
+      bannerStates=p.states||bannerStates;
+      activeBannerIdx=p.active||0;
+      // ensure nl/nlMode fields exist on loaded states
+      bannerStates.forEach(b=>{ if(b.nl==null)b.nl=0; if(!b.nlMode)b.nlMode='exact'; });
+    } else {
+      // legacy migration: single banner + separate nonlim keys
+      const old=localStorage.getItem('mpc_banner');
+      if(old) bannerStates[0]={...bannerStates[0],...JSON.parse(old)};
+      const oldNl=localStorage.getItem('mpc_nonlim');
+      const oldNlm=localStorage.getItem('mpc_nonlimMode');
+      if(oldNl) bannerStates[0].nl=parseInt(oldNl)||0;
+      if(oldNlm) bannerStates[0].nlMode=oldNlm;
+    }
+  }catch(e){}
+}
+function saveBannerState(){
+  try{localStorage.setItem('mpc_banners',JSON.stringify({states:bannerStates,active:activeBannerIdx}));}catch(e){}
+}
+loadBannerState();
+
+function _syncNlFromBanner(){
+  const b=bannerStates[activeBannerIdx];
+  nonLimMode=b.nlMode||'exact';
+  document.getElementById('nonlimpulled').value=b.nl||0;
+  buildNonLimPicker(b.nl||0);
+}
+
+function _bannerTabLabel(idx){
+  const id=bannerStates[idx].limited;
+  if(!id) return `Banner ${idx+1}`;
+  const meta=CHAMP_META.find(c=>c.id===id);
+  if(!meta) return `Banner ${idx+1}`;
+  // Use first name only to keep tabs compact
+  return meta.name.split(' ')[0];
+}
+
+function updateBannerResetBtn(){
+  const btn=document.getElementById('banner-reset-btn');
+  if(!btn)return;
+  const b=bannerStates[activeBannerIdx];
+  const hasAny=b.limited||b.hl.some(Boolean);
+  btn.style.display=hasAny?'':'none';
+}
+
+function _syncBannerTabs(){
+  [0,1].forEach(i=>{
+    const btn=document.getElementById(`banner-tab-${i}`);
+    if(btn){btn.textContent=_bannerTabLabel(i);btn.classList.toggle('active',i===activeBannerIdx);}
+  });
+}
+
+function switchBanner(idx){
+  activeBannerIdx=idx;
+  saveBannerState();
+  _syncBannerTabs();
+  _syncNlFromBanner();
+  renderAllBannerSlots();
+}
+
+function resetActiveBanner(){
+  bannerStates[activeBannerIdx]={limited:null,hl:[null,null,null],nl:0,nlMode:'exact'};
+  saveBannerState();
+  _syncBannerTabs();
+  _syncNlFromBanner();
+  renderAllBannerSlots();
+}
+
+function renderBannerSlot(type, idx){
+  const slotId = type==='limited' ? 'bs-limited' : `bs-hl-${idx}`;
+  const champId = type==='limited' ? bannerState.limited : bannerState.hl[idx];
+  const slotEl = document.getElementById(slotId);
+  const imgWrap = document.getElementById(slotId+'-img');
+  const infoEl  = document.getElementById(slotId+'-info');
+  const nameEl  = document.getElementById(slotId+'-name');
+  const metaEl  = document.getElementById(slotId+'-meta');
+  if(!slotEl) return;
+
+  // Odds per slot type — per-pull only
+  const isLimited = type==='limited';
+  const perPull = isLimited ? '1.03%' : '0.47%';
+
+  slotEl.classList.toggle('active', !!champId);
+
+  if(!champId){
+    imgWrap.innerHTML='<div class="bs-empty">Tap to set</div>';
+    if(infoEl) infoEl.style.display='none';
+    // Show odds even when empty
+    let oddsEl = slotEl.querySelector('.bs-odds');
+    if(!oddsEl){ oddsEl=document.createElement('div'); oddsEl.className='bs-odds'; slotEl.appendChild(oddsEl); }
+    oddsEl.innerHTML=`<span class="bs-odds-pct">${perPull}</span> <span class="bs-odds-per">per pull</span>`;
+
+    return;
+  }
+
+  const meta = CHAMP_META.find(c=>c.id===champId);
+  const imgSrc = CHAMP_IMGS[champId]||'';
+  const initials = (meta?meta.name:champId).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hue = (meta?meta.name:champId).split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+
+  imgWrap.innerHTML = imgSrc
+    ? `<img class="bs-img" src="${imgSrc}" alt="${meta?meta.name:champId}">`
+    : `<div class="bs-img-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);">${initials}</div>`;
+
+  if(infoEl && nameEl && metaEl){
+    infoEl.style.display='block';
+    nameEl.textContent = meta ? meta.name : champId;
+    metaEl.textContent = meta ? meta.class + (meta.synergies.length?' · '+meta.synergies[0]:'') : '';
+  }
+
+  // In-tile odds
+  let oddsEl = slotEl.querySelector('.bs-odds');
+  if(!oddsEl){ oddsEl=document.createElement('div'); oddsEl.className='bs-odds'; slotEl.appendChild(oddsEl); }
+  oddsEl.innerHTML=`<span class="bs-odds-pct">${perPull}</span> <span class="bs-odds-per">per pull</span>`;
+
+
+}
+
+
+
+function renderAllBannerSlots(){
+  _syncBannerTabs();
+  renderBannerSlot('limited');
+  for(let i=0;i<3;i++) renderBannerSlot('hl',i);
+  renderPullBannerCards();
+  updateBannerResetBtn();
+}
+renderAllBannerSlots();
+
+// ── Banner slot selection modal ───────────────────────────────────────────────
+function openBannerSlot(type, idx=0){
+  _bsmSlotType = type;
+  _bsmSlotIdx  = idx;
+  const title = type==='limited' ? 'Select Limited Champion' : `Select Highlighted Champion ${idx+1}`;
+  document.getElementById('bsm-title').textContent = title;
+  document.getElementById('bsm-search').value = '';
+  renderBSMList();
+  document.getElementById('bsm-overlay').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+
+function closeBSM(){
+  document.getElementById('bsm-overlay').classList.remove('active');
+  document.body.style.overflow='';
+  _bsmSlotType=null; _bsmSlotIdx=null;
+}
+
+function renderBSMList(){
+  const search = (document.getElementById('bsm-search').value||'').toLowerCase();
+  const isLimited = _bsmSlotType==='limited';
+  // IDs already used in OTHER highlighted slots (not the one being edited)
+  const usedHlIds = new Set(
+    bannerState.hl
+      .filter((_,i)=> i !== _bsmSlotIdx)
+      .filter(Boolean)
+  );
+  const pool = CHAMP_META.filter(c=>{
+    if(c.paywall) return false;
+    if(isLimited) return c.rarity==='Limited Mythic';
+    if(c.rarity!=='Mythic') return false;
+    if(usedHlIds.has(c.id)) return false; // already in another highlighted slot
+    return true;
+  }).filter(c=> !search || c.name.toLowerCase().includes(search));
+
+  document.getElementById('bsm-list').innerHTML = pool.map(c=>{
+    const imgSrc = CHAMP_IMGS[c.id]||'';
+    const initials = c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hue = c.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    const thumbHtml = imgSrc
+      ? `<img src="${imgSrc}" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;object-position:top;">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:hsl(${Math.abs(hue)%360},40%,22%);font-size:0.8rem;font-family:'Oswald',sans-serif;color:rgba(255,255,255,0.4);">${initials}</div>`;
+    const rarityColor = c.rarity==='Limited Mythic' ? 'var(--legendary)' : 'var(--mythic)';
+    return `<div class="bsm-item" onclick="selectBannerChamp('${c.id}')">
+      <div class="bsm-item-thumb">${thumbHtml}</div>
+      <div class="bsm-item-info">
+        <div class="bsm-item-name">${c.name}</div>
+        <div class="bsm-item-meta" style="color:${rarityColor};">${c.rarity} · ${c.class}</div>
+        <div class="bsm-item-meta">${c.synergies.join(' · ')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectBannerChamp(id){
+  if(_bsmSlotType==='limited'){
+    bannerState.limited = id;
+    // If selected champion is the same as the one in the calculator dropdown, sync
+    const champInCalc = document.getElementById('champ-dropdown').value;
+    const meta = CHAMP_META.find(c=>c.id===id);
+    // Map banner id to CHAMPIONS id (they share the same id system)
+    if(id && document.getElementById('champ-dropdown').value !== id){
+      // offer to sync? For now just update banner
+    }
+  } else {
+    bannerState.hl[_bsmSlotIdx] = id;
+  }
+  saveBannerState();
+  renderAllBannerSlots();
+  closeBSM();
+}
+
+function clearBannerSlot(){
+  if(_bsmSlotType==='limited') bannerState.limited=null;
+  else bannerState.hl[_bsmSlotIdx]=null;
+  saveBannerState();
+  renderAllBannerSlots();
+  closeBSM();
+}
+
+// ── Bonus shard thumbnail ─────────────────────────────────────────────────────
+function updateBonusShardThumb(){
+  const el=document.getElementById('bonus-shards-thumb');
+  if(!el)return;
+  const id=bannerState.limited;
+  if(!id){
+    el.innerHTML='?';el.style.backgroundImage='';return;
+  }
+  const imgSrc=CHAMP_IMGS[id]||'';
+  if(imgSrc){
+    el.innerHTML=`<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top;">`;
+  } else {
+    const meta=CHAMP_META.find(c=>c.id===id);
+    const name=meta?meta.name:id;
+    const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hue=name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    el.innerHTML=`<span style="background:hsl(${Math.abs(hue)%360},40%,22%);width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:0.65rem;">${initials}</span>`;
+  }
+}
+
+// ── Pull logger banner card grid ──────────────────────────────────────────────
+function _pullChampCard(id, inputId, type, sub){
+  const meta=CHAMP_META.find(c=>c.id===id);
+  const name=meta?meta.name:id;
+  const imgSrc=CHAMP_IMGS[id]||'';
+  const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hue=name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+  const portrait=imgSrc
+    ?`<div class="pull-card-portrait"><img src="${imgSrc}" alt="${name}"></div>`
+    :`<div class="pull-card-portrait pull-card-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);"><span style="font-family:'Oswald',sans-serif;font-size:1.1rem;color:rgba(255,255,255,0.4);">${initials}</span></div>`;
+  // Match Bleed Banner border styles exactly
+  const cardClass = type==='limited' ? 'pull-card pull-card-limited' : 'pull-card pull-card-highlighted';
+  return `<div class="${cardClass}">
+    ${portrait}
+    <div class="pull-card-name" style="color:var(--mythic);">${name}</div>
+    <div class="pull-card-sub">${sub}</div>
+    <div class="pull-card-counter">
+      <button class="pull-card-btn" onclick="stepLog('${inputId}',-1)">−</button>
+      <input type="number" id="${inputId}" value="0" min="0" oninput="onLogChange()" class="pull-card-input">
+      <button class="pull-card-btn" onclick="stepLog('${inputId}',1)">+</button>
+    </div>
+  </div>`;
+}
+
+function renderPullBannerCards(){
+  const bannerContainer=document.getElementById('pull-banner-cards');
+  const regularContainer=document.getElementById('pull-regular-cards');
+  if(!bannerContainer||!regularContainer)return;
+
+  // IDs currently on the banner (to exclude from regular pool)
+  const bannerIds=new Set([
+    bannerState.limited,
+    ...bannerState.hl
+  ].filter(Boolean));
+
+  // ── Banner cards ──────────────────────────────────────────────────────────
+  let bannerHtml='';
+  if(bannerState.limited){
+    bannerHtml+=_pullChampCard(bannerState.limited,'li-count','limited','Limited · 40/dupe');
+  } else {
+    bannerHtml+=`<div class="pull-card" style="opacity:0.35;pointer-events:none;">
+      <div class="pull-card-portrait pull-card-fallback" style="background:rgba(212,43,43,0.07);">
+        <span style="font-size:0.78rem;color:var(--text-dim);text-align:center;padding:4px;">No limited set</span>
+      </div>
+      <div class="pull-card-name" style="color:var(--mythic);">Limited</div>
+      <div class="pull-card-sub">set in Bleed Banner</div>
+      <div class="pull-card-counter" style="justify-content:center;"><span style="font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:var(--text-dim);">—</span></div>
+    </div>`;
+  }
+  bannerState.hl.forEach((hlId,i)=>{
+    if(!hlId){
+      bannerHtml+=`<div class="pull-card" style="opacity:0.35;pointer-events:none;">
+        <div class="pull-card-portrait pull-card-fallback" style="background:rgba(0,0,0,0.15);">
+          <span style="font-size:0.78rem;color:var(--text-dim);text-align:center;padding:4px;">Empty slot</span>
+        </div>
+        <div class="pull-card-name">Highlighted ${i+1}</div>
+        <div class="pull-card-sub">set in Bleed Banner</div>
+        <div class="pull-card-counter" style="justify-content:center;"><span style="font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:var(--text-dim);">—</span></div>
+      </div>`;
+    } else {
+      bannerHtml+=_pullChampCard(hlId,`hi-count-${i}`,'highlighted','Highlighted · 10/dupe');
+    }
+  });
+  bannerContainer.innerHTML=bannerHtml;
+
+  // ── Other Mythic cards (all Mythic not on banner, not paywall) ────────────
+  const regularMythics=CHAMPIONS.filter(c=>
+    c.rarity==='Mythic' && !c.paywall && !bannerIds.has(c.id)
+  );
+  regularContainer.innerHTML=regularMythics.map(c=>
+    _pullChampCard(c.id,`re-count-${c.id}`,'regular','Mythic · 10/dupe')
+  ).join('');
+
+  updateBonusShardThumb();
+  onLogChange();
+}
+
+
+window._initInProgress=true;
+loadSettings();
+(function(){
+  const tc=document.getElementById('targetColor').value;
+  const ts=parseInt(document.getElementById('targetStar').value)||1;
+  buildColorPicker('targetColorPicker','targetColor',false,tc);
+  buildStarPicker('targetStarPicker','targetStar',ts,tc);
+  updatePlannerCurrentLevel();
+  buildNonLimPicker(0); // will be overridden by _syncNlFromBanner below
+  if(nonLimMode==='maxed'){document.getElementById('nonlimpulled').value=6;buildNonLimPicker(6);}
+  if(scenario!=='expected'){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-guaranteed').classList.add('active');}
+})();
+setBatch(batchSize||50);resetLogInputs();renderHistory();renderAudit();populateChampDropdown();_syncNlFromBanner();renderPullBannerCards();updateBonusShardThumb();calculate();calcReverse();
+window._initInProgress=false;
+// Restore last active section
+try{const sec=localStorage.getItem('mpc_section');if(sec&&['planner','banner','collection'].includes(sec))switchSection(sec);}catch(e){}
+
+</script>
+<!-- BANNER SLOT SELECT MODAL -->
+<div class="bsm-overlay" id="bsm-overlay" onclick="if(event.target===this)closeBSM()">
+  <div class="bsm-box">
+    <button class="bsm-close" onclick="closeBSM()">&#x2715;</button>
+    <div class="bsm-title" id="bsm-title">Select Champion</div>
+    <input class="bsm-search" type="text" id="bsm-search" placeholder="Search..." oninput="renderBSMList()">
+    <div class="bsm-list" id="bsm-list"></div>
+    <button class="bsm-clear" onclick="clearBannerSlot()">Clear slot</button>
+  </div>
+</div>
+</body>
+</html>
