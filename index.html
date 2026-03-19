@@ -994,7 +994,6 @@ const CHAMP_IMGS={
   'robin':_B+'robin.png','shazam':_B+'shazam.png',
   'stargirl':_B+'stargirl.png','talia':_B+'talia.png',
   'two_face':_B+'two_face.png','wonder_girl':_B+'wonder_girl.png',
-  'donna_troy':_B+'wonder_girl.png',
   'atom':_B+'atom.png','black_adam':_B+'black_adam.png',
   'captain_cold':_B+'captain_cold.png','catwoman':_B+'catwoman.png',
   'green_arrow':_B+'green_arrow.png','killer_croc':_B+'killer_croc.png',
@@ -1539,8 +1538,16 @@ function autoUpdateStarLevel(){
   document.getElementById('ownedColor').value=bestColor;
   document.getElementById('ownedStar').value=bestStar;
   const newConsumed=STAR_TABLE[bestColor+'-'+bestStar].s;
-  document.getElementById('shards').value=Math.max(0,totalLifetime-newConsumed);
+  const leftover=Math.max(0,totalLifetime-newConsumed);
+  document.getElementById('shards').value=leftover;
   updatePlannerCurrentLevel();
+  // Sync back to champData so Collection tab stays in step
+  const champId=document.getElementById('champ-dropdown').value;
+  if(champId){
+    champData[champId]={...(champData[champId]||{}),color:bestColor,star:String(bestStar),shards:leftover};
+    saveChampData();
+    renderCollection();
+  }
 }
 
 // ── AUDIT TRACKER ────────────────────────────────────────────────────────────
