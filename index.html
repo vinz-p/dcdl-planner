@@ -1038,7 +1038,7 @@ const pLD=pM*pL,pNLD=pM*pHL;
 const CLABEL2=TIER_LABEL_MAP;
 
 function tierColor(c){return TIER_COLOR_MAP[c]||'#888';}
-function tierLabel(key){const[c,s]=key.split('-');const si=parseInt(s);return TIER_LABEL_MAP[c]+' '+(si===0?'0★':STAR_LABELS[si-1]);}
+function tierLabel(key){const[c,s]=key.split('-');const si=parseInt(s);return TIER_LABEL_MAP[c]+' '+STAR_LABELS[si];}
 function tierConsumed(key){return key&&key!=='none'?(STAR_TABLE[key]||{s:0}).s:0;}
 
 let scenario='expected',nonLimMode='exact',batchSize=1;
@@ -1775,7 +1775,7 @@ function renderConsumeButtons(){
     const btn=document.createElement('button');
     btn.className='consume-btn next';btn.disabled=!canNext;
     btn.style.opacity=canNext?'1':'0.4';btn.style.cursor=canNext?'pointer':'not-allowed';
-    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+(parseInt(ns)===0?'0★':STAR_LABELS[parseInt(ns)-1])+'</span>'
+    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+STAR_LABELS[parseInt(ns)]+'</span>'
       +' <span style="font-size:0.85em;opacity:0.7;">— uses '+nextCost+' shards</span>'
       +(canNext?'':' <span style="font-size:0.85em;color:var(--mythic);">(need '+nextNeeded+' more)</span>');
     if(canNext)btn.onclick=()=>consumeShards(nextKey,curConsumed,totalOwned);
@@ -1791,7 +1791,7 @@ function renderConsumeButtons(){
     const maxCost=maxConsumed-curConsumed;
     const maxLeftover=totalOwned-maxConsumed;
     const btn2=document.createElement('button');btn2.className='consume-btn max';
-    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc)+'">'+TIER_LABEL_MAP[mc]+' '+(parseInt(ms)===0?'0★':STAR_LABELS[parseInt(ms)-1])+'</span>'
+    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc)+'">'+TIER_LABEL_MAP[mc]+' '+STAR_LABELS[parseInt(ms)]+'</span>'
       +' <span style="font-size:0.85em;opacity:0.7;">— uses '+maxCost+' shards, '+maxLeftover+' left over</span>';
     btn2.onclick=()=>consumeShards(maxReachableKey,curConsumed,totalOwned);
     container.appendChild(btn2);
@@ -1901,7 +1901,7 @@ function calcReverse(){
       html += '<span style="color:var(--text-dim);">Expected: </span><span style="color:'+expC+';font-weight:700;">'+expLabel+'</span>';
       if(expNextTier&&expNextProb!==null){
         const[nc2b,ns2b]=expNextTier.split('-');
-        const nLabel2b=TIER_LABEL_MAP[nc2b]+' '+(parseInt(ns2b)===0?'0★':STAR_LABELS[parseInt(ns2b)-1]);
+        const nLabel2b=TIER_LABEL_MAP[nc2b]+' '+STAR_LABELS[parseInt(ns2b)];
         html += '<span style="color:var(--text-dim);font-size:0.88em;"> → '+nLabel2b+' (~'+expNextProb+'%)</span>';
       }
     } else {
@@ -1977,7 +1977,7 @@ function calculate(){
       const shardsToNext=Math.max(0,nextShards_g-(oShards+ownedShards));
       const[nc_g,ns_g]=nextKey_g.split('-');
       const nextColor_g=tierColor(nc_g);
-      const nextLabel_g=TIER_LABEL_MAP[nc_g]+' '+(parseInt(ns_g)===0?'0★':STAR_LABELS[parseInt(ns_g)-1]);
+      const nextLabel_g=TIER_LABEL_MAP[nc_g]+' '+STAR_LABELS[parseInt(ns_g)];
       const wcNext=shardsToNext<=0?0:worstCaseForGoal(nextKey_g,oShards,leftover_g,true,mythicsSinceLastLimited);
       const mcNext=shardsToNext<=0?{median:0,low:0,high:0}:runMC(nextGoal_g,hasFirst_g,alreadyNL,pLD,pNLD,eSE,eSL,2000,leftover_g);
       const revAnvils=parseInt(document.getElementById('reverse-anvils').value)||0;
@@ -2672,7 +2672,7 @@ function renderCMConsumeButtons(){
     btn.style.opacity=canNext?'1':'0.4';
     btn.style.cursor=canNext?'pointer':'not-allowed';
     const nextCost=nextShards-curConsumed;
-    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+(parseInt(ns)===0?'0★':STAR_LABELS[parseInt(ns)-1])+'</span>'
+    btn.innerHTML='⬆ Consume for <span style="color:'+tierColor(nc)+'">'+TIER_LABEL_MAP[nc]+' '+STAR_LABELS[parseInt(ns)]+'</span>'
       +' <span style="font-size:0.85em;opacity:0.7;">— uses '+nextCost+' shards</span>'
       +(canNext?'':' <span style="font-size:0.85em;color:var(--mythic);">(need '+nextNeeded+' more)</span>');
     if(canNext)btn.onclick=()=>cmConsumeShards(nextKey,curConsumed,totalOwned);
@@ -2691,7 +2691,7 @@ function renderCMConsumeButtons(){
     const maxConsumed=STAR_TABLE[maxKey].s;
     const maxCost=maxConsumed-curConsumed;
     const maxLeftover=totalOwned-maxConsumed;
-    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc2)+'">'+TIER_LABEL_MAP[mc2]+' '+(parseInt(ms2)===0?'0★':STAR_LABELS[parseInt(ms2)-1])+'</span>'
+    btn2.innerHTML='⬆⬆ Consume to <span style="color:'+tierColor(mc2)+'">'+TIER_LABEL_MAP[mc2]+' '+STAR_LABELS[parseInt(ms2)]+'</span>'
       +' <span style="font-size:0.85em;opacity:0.7;">— uses '+maxCost+' shards, '+maxLeftover+' left over</span>';
     btn2.onclick=()=>cmConsumeShards(maxKey,curConsumed,totalOwned);
     container.appendChild(btn2);
