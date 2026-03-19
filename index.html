@@ -2637,7 +2637,8 @@ function updateCMLevelLabel(){
   const el=document.getElementById('cm-level-label');
   const shardsRow=document.getElementById('cm-shards-row');
   const isOwned=mc&&mc!=='none';
-  if(shardsRow)shardsRow.style.display=isOwned?'':'none';
+  const isMaxed=mc==='red'&&ms===5;
+  if(shardsRow)shardsRow.style.display=(isOwned&&!isMaxed)?'':'none';
   if(mc==='none'){el.textContent='Not owned';renderCMConsumeButtons();return;}
   const key=mc+'-'+ms;const e=STAR_TABLE[key];
   el.textContent=e?(ms===0?'Owned — 0 stars (no shards consumed yet)':e.s+' shards consumed'):'';
