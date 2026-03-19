@@ -1345,8 +1345,8 @@ function copyShareSummary(){
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value)||1;
   const shards=parseInt(document.getElementById('shards').value)||0;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os-1]));
-  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts-1];
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const tEntry=STAR_TABLE[tc+'-'+ts];
   const oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
   const shardsNeeded=Math.max(0,tEntry.s-(oEntry?oEntry.s:0)-shards);
@@ -1709,11 +1709,8 @@ function updateProgressBar(earned,target){
   const os=parseInt((document.getElementById('ownedStar')||{}).value)||0;
   const tc=(document.getElementById('targetColor')||{}).value||'red';
   const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os-1]));
-  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts-1];
-  const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
-  const toColor=tierColor(tc);
-  const progressRoute=document.getElementById('progress-route');
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   if(progressRoute)progressRoute.innerHTML=
     '<span style="color:'+fromColor+'">'+fromLabel+'</span>'+
     '<span style="color:var(--text-dim);margin:0 6px;">→</span>'+
