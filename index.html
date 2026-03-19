@@ -1712,6 +1712,9 @@ function updateProgressBar(earned,target){
   const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
   const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
+  const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
+  const toColor=tierColor(tc);
+  const progressRoute=document.getElementById('progress-route');
   if(progressRoute)progressRoute.innerHTML=
     '<span style="color:'+fromColor+'">'+fromLabel+'</span>'+
     '<span style="color:var(--text-dim);margin:0 6px;">→</span>'+
