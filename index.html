@@ -328,6 +328,23 @@
   .coll-sort:hover{border-color:var(--accent);color:var(--text);}
   .coll-sort.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
 
+  /* ── TEAM FILTER CHIPS ────────────────────────────────────────────────── */
+  .team-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 5px;
+    border:1px solid var(--border);background:transparent;color:var(--text-dim);
+    font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.5px;
+    cursor:pointer;border-radius:20px;transition:all 0.15s;white-space:nowrap;}
+  .team-chip:hover{border-color:rgba(79,195,247,0.4);color:var(--text);}
+  .team-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
+  .team-chip-icon{width:22px;height:22px;object-fit:contain;border-radius:50%;flex-shrink:0;}
+  .team-chip-icon-fb{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.07);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:0.5rem;font-weight:700;color:var(--text-dim);flex-shrink:0;}
+  .team-chip-label{text-transform:uppercase;}
+  @media(max-width:600px){
+    .team-chip{font-size:0.52rem;padding:3px 8px 3px 4px;}
+    .team-chip-icon,.team-chip-icon-fb{width:18px;height:18px;}
+  }
+
   /* ── PROGRESS BAR ON CARD ─────────────────────────────────────────────── */
   .cc-prog-wrap{margin:6px 8px 8px;height:5px;border-radius:3px;overflow:hidden;position:relative;background:rgba(255,255,255,0.04);}
   .cc-prog-bar{height:100%;border-radius:3px;transition:width 0.4s ease;}
@@ -918,7 +935,7 @@
         <button class="coll-filter" id="co-levelable" onclick="setCollOwnership('levelable',this)">Can Be Leveled</button>
       </div>
       <!-- Row 3: Sort -->
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Sort:</span>
         <button class="coll-sort active" id="sort-rarity" onclick="setCollSort('rarity',this)">Rarity</button>
         <button class="coll-sort" id="sort-name" onclick="setCollSort('name',this)">Name</button>
@@ -928,6 +945,10 @@
         <button class="coll-sort" id="sort-asc" onclick="setCollDir('asc',this)" title="Ascending">↑</button>
         <button class="coll-sort active" id="sort-desc" onclick="setCollDir('desc',this)" title="Descending">↓</button>
       </div>
+      <!-- Row 4: Team / Synergy filter chips -->
+      <div id="team-chip-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);"></div>
+      <!-- Team header (shown when a team chip is active) -->
+      <div id="team-filter-header" style="display:none;margin-bottom:10px;"></div>
       <div class="coll-grid" id="coll-grid"></div>
     </div>
   </div>
@@ -1016,6 +1037,39 @@ const CHAMP_IMGS={
   'wonder_woman_dm':_B+'wonder_woman_dm.png',
 };
 
+// Faction icons — keyed by team name as it appears in CHAMPIONS[].teams
+const TEAM_ICONS={
+  "Arkham's Most Wanted": _B+'faction_arkham.png',
+  'Atlanteans':           _B+'faction_atlanteans.png',
+  'Bat Family':           _B+'faction_bat_family.png',
+  'Birds of Prey':        _B+'faction_birds_of_prey.png',
+  'Energy Wielder':       _B+'faction_energy_wielder.png',
+  'Flash Family':         _B+'faction_flash_family.png',
+  'Green Lantern Corps':  _B+'faction_green_lantern_corps.png',
+  'Justice League':       _B+'faction_justice_league.png',
+  'Justice League Dark':  _B+'faction_justice_league_dark.png',
+  'League of Assassins':  _B+'faction_league_of_assassins.png',
+  'Legion of Doom':       _B+'faction_legion_of_doom.png',
+  'Metahuman':            _B+'faction_metahuman.png',
+  'Suicide Squad':        _B+'faction_suicide_squad.png',
+  'Superman Family':      _B+'faction_superman_family.png',
+  'Teen Titans':          _B+'faction_titans.png',
+  'Weapon Master':        _B+'faction_weapon_master.png',
+  // No fan-kit icon available for these:
+  'Amazons':              null,
+  'Death Metal':          null,
+  'League of Shadows':    null,
+  'Outsiders':            null,
+};
+
+// All teams in display order (most populated first, then alphabetical)
+const TEAMS_ORDER=[
+  'Bat Family','Justice League','Legion of Doom','Teen Titans','Birds of Prey',
+  'Arkham\'s Most Wanted','Superman Family','Suicide Squad','Justice League Dark',
+  'League of Assassins','Weapon Master','Metahuman','Energy Wielder','Amazons',
+  'Atlanteans','Flash Family','Green Lantern Corps','Outsiders',
+  'Death Metal','League of Shadows',
+];
 
 const STAR_TABLE={
   'white-0':{s:0,c:1},
@@ -2385,6 +2439,7 @@ let collDir='desc';
 let collOwnership='all';
 let collRarities=new Set(); // empty = no rarity filter (show all)
 let collPaywall=false;
+let collTeam=null; // null = All teams
 
 function setCollOwnership(f,btn){
   collOwnership=f;
@@ -2410,6 +2465,31 @@ function setCollFilter(f,btn){setCollOwnership(f,btn);}
 function setCollSort(s,btn){collSort=s;document.querySelectorAll('.coll-sort:not(#sort-asc):not(#sort-desc)').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCollection();}
 function setCollDir(d,btn){collDir=d;['sort-asc','sort-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',el.id==='sort-'+d);});renderCollection();}
 
+function setCollTeam(team){
+  collTeam=(collTeam===team)?null:team; // toggle: click active chip → clear
+  renderCollection();
+}
+
+function buildTeamChips(){
+  const row=document.getElementById('team-chip-row');
+  if(!row)return;
+  // Build "All" chip
+  let html=`<button class="team-chip${collTeam===null?' active':''}" onclick="setCollTeam(null)">All</button>`;
+  TEAMS_ORDER.forEach(team=>{
+    const members=CHAMPIONS.filter(c=>c.teams&&c.teams.includes(team));
+    if(!members.length)return; // skip teams with no champions
+    const icon=TEAM_ICONS[team];
+    const active=collTeam===team?' active':'';
+    const iconHtml=icon
+      ?`<img src="${icon}" alt="${team}" class="team-chip-icon" onerror="this.style.display='none'">`
+      :`<span class="team-chip-icon-fb">${team.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`;
+    html+=`<button class="team-chip${active}" onclick="setCollTeam('${team.replace(/'/g,"\\'")}')">
+      ${iconHtml}<span class="team-chip-label">${team}</span>
+    </button>`;
+  });
+  row.innerHTML=html;
+}
+
 // Rarity rank for sorting (lower = higher priority)
 const RARITY_RANK={'Limited Mythic':0,'Mythic':1,'Legendary':2,'Iconic':3,'Epic':4};
 const RARITY_STRIP={'Limited Mythic':'linear-gradient(90deg,#d42b2b,#f0a500)','Mythic':'linear-gradient(90deg,#d42b2b,#6b1515)','Legendary':'linear-gradient(90deg,#f0a500,#7a5200)','Iconic':'linear-gradient(90deg,#c084fc,#6b21a8)','Epic':'linear-gradient(90deg,#4a5ab5,#1e2a5e)'};
@@ -2427,9 +2507,15 @@ function champProgressPct(id){
 }
 
 function renderCollection(){
+  buildTeamChips();
+
   const search=(document.getElementById('coll-search').value||'').toLowerCase().trim();
   let list=CHAMPIONS.filter(c=>{
     if(search&&!c.name.toLowerCase().includes(search))return false;
+
+    // Team filter
+    if(collTeam&&!(c.teams&&c.teams.includes(collTeam)))return false;
+
     const s=champStatus(c.id);
 
     // Ownership filter (radio)
@@ -2495,6 +2581,27 @@ function renderCollection(){
   const owned=CHAMPIONS.filter(c=>champStatus(c.id)!=='not-owned').length;
   const maxed=CHAMPIONS.filter(c=>champStatus(c.id)==='maxed').length;
   document.getElementById('coll-stats').innerHTML='<span>'+owned+'</span>/'+CHAMPIONS.length+' owned &nbsp;·&nbsp; <span>'+maxed+'</span> maxed';
+
+  // Team header
+  const teamHeader=document.getElementById('team-filter-header');
+  if(teamHeader){
+    if(collTeam){
+      const teamAll=CHAMPIONS.filter(c=>c.teams&&c.teams.includes(collTeam));
+      const teamOwned=teamAll.filter(c=>champStatus(c.id)!=='not-owned').length;
+      const icon=TEAM_ICONS[collTeam];
+      const iconHtml=icon?`<img src="${icon}" alt="${collTeam}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;border-radius:50%;">`:'';
+      teamHeader.style.display='block';
+      teamHeader.innerHTML=`<div style="display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:1px;color:var(--text-dim);padding:6px 10px;background:rgba(79,195,247,0.04);border:1px solid rgba(79,195,247,0.12);border-radius:6px;">`
+        +iconHtml
+        +`<span style="color:var(--accent);font-weight:700;text-transform:uppercase;">${collTeam}</span>`
+        +`<span style="margin:0 4px;">·</span>`
+        +`<span><span style="color:var(--accent);">${teamOwned}</span> / ${teamAll.length} owned</span>`
+        +`</div>`;
+    } else {
+      teamHeader.style.display='none';
+      teamHeader.innerHTML='';
+    }
+  }
 
   const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
 
