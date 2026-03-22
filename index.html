@@ -471,6 +471,29 @@
     color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
     width:80px;outline:none;padding:0;}
   .cs-item.tp-disabled{opacity:0.32;pointer-events:none;}
+  .tp-summary{padding:10px 14px;margin-bottom:12px;background:rgba(0,0,0,0.15);border-radius:8px;
+    border:1px solid rgba(255,255,255,0.05);}
+  .tp-summary-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .tp-summary-name{font-family:'Oswald',sans-serif;font-size:0.9rem;letter-spacing:2px;
+    text-transform:uppercase;color:var(--text);}
+  .tp-summary-rename{background:none;border:none;cursor:pointer;color:var(--text-dim);
+    font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:1px;padding:2px 6px;
+    border-radius:4px;border:1px solid var(--border);transition:all 0.15s;}
+  .tp-summary-rename:hover{color:var(--accent);border-color:var(--accent);}
+  .tp-portraits-row{display:flex;gap:6px;margin-bottom:10px;}
+  .tp-portrait-slot{width:44px;height:44px;border-radius:6px;overflow:hidden;border:1px solid var(--border);
+    flex-shrink:0;cursor:pointer;transition:border-color 0.15s;}
+  .tp-portrait-slot:hover{border-color:var(--accent);}
+  .tp-portrait-slot.empty{border-style:dashed;cursor:default;display:flex;align-items:center;
+    justify-content:center;color:rgba(255,255,255,0.1);font-size:1rem;}
+  .tp-portrait-slot.empty:hover{border-color:var(--border);}
+  .tp-factions-row{display:flex;gap:5px;flex-wrap:wrap;}
+  .tp-faction-tag{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;
+    background:rgba(79,195,247,0.06);border:1px solid rgba(79,195,247,0.14);
+    font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;color:var(--text-dim);}
+  .tp-faction-tag img{width:14px;height:14px;object-fit:contain;flex-shrink:0;}
+  .tp-faction-count{font-size:0.6rem;opacity:0.6;margin-left:2px;font-family:'Share Tech Mono',monospace;}
+  .tp-tab-count{font-family:'Share Tech Mono',monospace;font-size:0.55rem;opacity:0.55;margin-left:3px;}
 
   /* ── CHAMPION EDIT MODAL ─────────────────────────────────────────────── */
   .champ-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;
@@ -846,7 +869,8 @@
 
     <!-- ── TEAM PLANNER ── -->
     <div id="team-planner-wrap" style="display:none;">
-      <div id="tp-teams-row" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;overflow-x:auto;"></div>
+      <div id="tp-teams-row" style="display:flex;gap:6px;align-items:center;margin-bottom:10px;overflow-x:auto;"></div>
+      <div id="tp-team-summary"></div>
       <div id="team-plan-cards"></div>
       <button class="tp-add-btn" id="tp-add-champ-btn" onclick="addTeamEntry()">+ Add Champion</button>
       <div class="panel" id="team-plan-total" style="display:none;"></div>
@@ -2241,7 +2265,7 @@ function startTpRename(idx,e){
 function commitTpRename(idx,val){
   const name=(val||'').trim();
   if(name)teams[idx].name=name.slice(0,20);
-  saveTeamPlan();renderTeamTabs();
+  saveTeamPlan();renderTeamPlan();
 }
 
 function renderTeamTabs(){
@@ -2250,14 +2274,63 @@ function renderTeamTabs(){
   el.innerHTML=teams.map((t,i)=>{
     const isActive=i===activeTeamIdx;
     const delConfirm=tpDeleteConfirm===i;
+    const count=t.entries.filter(e=>e.id).length;
     const delBtn=teams.length>1
       ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm delete':'Remove team'}">&times;</button>`
       :'';
     return `<div class="tp-team-tab${isActive?' active':''}" onclick="switchTeam(${i})">`
       +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" title="Double-click to rename">${t.name}</span>`
+      +(count?`<span class="tp-tab-count">${count}/5</span>`:'')
       +delBtn+`</div>`;
   }).join('')
   +(teams.length<5?`<button class="tp-add-team-btn" onclick="addTeam()" title="New team">+</button>`:'');
+}
+
+function renderTeamSummary(){
+  const el=document.getElementById('tp-team-summary');
+  if(!el)return;
+  const team=teams[activeTeamIdx];
+  const entries=team.entries;
+  const filled=entries.filter(e=>e.id);
+  if(!filled.length){el.innerHTML='';return;}
+  // Portrait slots (5 total)
+  const slots=Array.from({length:5},(_,i)=>{
+    const entry=entries[i];
+    if(!entry||!entry.id){
+      return `<div class="tp-portrait-slot empty" title="Empty slot">·</div>`;
+    }
+    const imgSrc=CHAMP_IMGS[entry.id]||'';
+    const champ=CHAMPIONS.find(c=>c.id===entry.id);
+    const name=champ?champ.name:'?';
+    const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hue=name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    const inner=imgSrc
+      ?`<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top;">`
+      :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:hsl(${Math.abs(hue)%360},40%,22%);font-size:0.65rem;color:rgba(255,255,255,0.5);">${initials}</div>`;
+    const lvl=champLevelStr(entry.id);
+    return `<div class="tp-portrait-slot" onclick="openChampModal('${entry.id}')" title="${name} — ${lvl}">${inner}</div>`;
+  }).join('');
+  // Collect unique factions, sorted by how many champions share them
+  const factionCounts={};
+  filled.forEach(e=>{
+    const champ=CHAMPIONS.find(c=>c.id===e.id);
+    (champ&&champ.teams||[]).forEach(t=>{factionCounts[t]=(factionCounts[t]||0)+1;});
+  });
+  const factions=Object.keys(factionCounts).sort((a,b)=>factionCounts[b]-factionCounts[a]);
+  const factionHtml=factions.map(f=>{
+    const icon=TEAM_ICONS[f]||null;
+    const img=icon?`<img src="${icon}" alt="">`:'';
+    const cnt=factionCounts[f]>1?`<span class="tp-faction-count">${factionCounts[f]}</span>`:'';
+    return `<div class="tp-faction-tag">${img}${f}${cnt}</div>`;
+  }).join('');
+  el.innerHTML=`<div class="tp-summary">`
+    +`<div class="tp-summary-header">`
+      +`<div class="tp-summary-name">${team.name}</div>`
+      +`<button class="tp-summary-rename" onclick="startTpRename(${activeTeamIdx},event)">✎ Rename</button>`
+    +`</div>`
+    +`<div class="tp-portraits-row">${slots}</div>`
+    +(factionHtml?`<div class="tp-factions-row">${factionHtml}</div>`:'')
+    +`</div>`;
 }
 
 function switchPlannerMode(mode){
@@ -2383,6 +2456,7 @@ function _tpTargetPickerHtml(idx,targetColor,targetStar){
 
 function renderTeamPlan(){
   renderTeamTabs();
+  renderTeamSummary();
   const cardsEl=document.getElementById('team-plan-cards');
   const totalEl=document.getElementById('team-plan-total');
   const addBtn=document.getElementById('tp-add-champ-btn');
@@ -2434,7 +2508,7 @@ function renderTeamPlan(){
     const champInfoHtml=champ&&!searchOpen
       ?`<div class="tp-tier-row">`
         +`<span class="tp-tier-label">From</span>`
-        +`<span class="tp-tier-now" style="color:${curColor};">${curLabel}</span>`
+        +`<span class="tp-tier-now" style="color:${curColor};cursor:pointer;" onclick="openChampModal('${entry.id}')" title="Edit level in Collection">${curLabel}</span>`
         +`<span class="tp-tier-arrow">&#8594;</span>`
         +`<span class="tp-tier-label">Target</span>`
         +`<div class="tp-target-picker">${_tpTargetPickerHtml(i,entry.targetColor,entry.targetStar)}</div>`
@@ -2848,11 +2922,17 @@ function selectChamp(id){
 function updatePlannerCurrentLevel(){
   const oc=document.getElementById('ownedColor').value;
   const os=parseInt(document.getElementById('ownedStar').value)||0;
+  const champId=document.getElementById('champ-dropdown').value;
   const el=document.getElementById('planner-current-level');
   if(!el)return;
-  if(!oc||oc==='none'){el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>';return;}
+  if(!champId){el.innerHTML='<span style="color:var(--text-dim);">No champion selected</span>';return;}
+  const editBtn=` <button onclick="openChampModal('${champId}')" title="Edit champion level" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:1px;padding:0 0 0 4px;vertical-align:middle;transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">✎ edit</button>`;
+  if(!oc||oc==='none'){
+    el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>'+editBtn;
+    return;
+  }
   const lvlStr=TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]);
-  el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`;
+  el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`+editBtn;
 }
 
 // Collection navigation — now just switches to collection tab
@@ -2880,7 +2960,6 @@ function loadSelectedChampion(){
 
   if(!id){
     if(settingsPanel)settingsPanel.style.display='none';
-    if(levelEl)levelEl.innerHTML='<span style="color:var(--text-dim);">No champion selected</span>';
     document.getElementById('ownedColor').value='none';
     document.getElementById('ownedStar').value='0';
     document.getElementById('shards').value='0';
@@ -2888,7 +2967,6 @@ function loadSelectedChampion(){
     document.getElementById('targetStar').value='5';
   }else if(!isOwned){
     if(settingsPanel)settingsPanel.style.display='';
-    if(levelEl)levelEl.innerHTML='<span style="color:var(--text-dim);">Not owned</span>';
     document.getElementById('ownedColor').value='none';
     document.getElementById('ownedStar').value='0';
     document.getElementById('shards').value=d?d.shards||0:0;
@@ -2906,11 +2984,8 @@ function loadSelectedChampion(){
     document.getElementById('shards').value=d.shards||0;
     document.getElementById('targetColor').value=nc;
     document.getElementById('targetStar').value=ns;
-    if(levelEl){
-      const lvlStr=champLevelStr(id);
-      levelEl.innerHTML=`<span style="color:${tierColor(d.color)};">${lvlStr}</span>`;
-    }
   }
+  updatePlannerCurrentLevel();
 
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value)||1;
@@ -3393,11 +3468,11 @@ function autoSaveChamp(){
     champData[cmChampId]={color:mc,star:ms,shards:sh,...(savedRarity?{rarity:savedRarity}:{})};
   }
   saveChampData();
-  // Sync to planner if this champ is currently selected there
+  // Sync to single planner if this champ is currently selected there
   const plannerChampId=document.getElementById('champ-dropdown').value;
-  if(plannerChampId===cmChampId){
-    loadSelectedChampion();
-  }
+  if(plannerChampId===cmChampId)loadSelectedChampion();
+  // Sync to team planner (champion "From" level may have changed)
+  if(plannerMode==='team')renderTeamPlan();
   populateChampDropdown();renderCollection();
 }
 function closeChampModal(){
