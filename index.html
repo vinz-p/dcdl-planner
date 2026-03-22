@@ -452,6 +452,25 @@
   .tp-add-btn:hover{border-color:var(--accent);background:rgba(79,195,247,0.08);}
   .tp-empty{text-align:center;padding:32px 16px;color:var(--text-dim);
     font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:1px;}
+  .tp-teams-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;align-items:center;padding-bottom:2px;}
+  .tp-team-tab{display:flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);
+    border-radius:6px;background:rgba(255,255,255,0.02);color:var(--text-dim);cursor:pointer;
+    white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:0.5px;
+    transition:background 0.15s;}
+  .tp-team-tab.active{background:rgba(79,195,247,0.1);border-color:var(--accent);color:var(--accent);}
+  .tp-team-tab:hover:not(.active){background:rgba(255,255,255,0.04);color:var(--text);}
+  .tp-team-del{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;
+    padding:0 0 0 2px;font-size:0.9rem;line-height:1;transition:color 0.15s;}
+  .tp-team-del:hover{color:var(--mythic);}
+  .tp-team-del.confirm{color:var(--mythic);}
+  .tp-add-team-btn{padding:5px 10px;border:1px dashed var(--border);border-radius:6px;background:transparent;
+    color:var(--text-dim);cursor:pointer;font-size:1rem;line-height:1;flex-shrink:0;
+    transition:border-color 0.15s,color 0.15s;}
+  .tp-add-team-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .tp-team-name-input{background:transparent;border:none;border-bottom:1px solid var(--accent);
+    color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+    width:80px;outline:none;padding:0;}
+  .cs-item.tp-disabled{opacity:0.32;pointer-events:none;}
 
   /* ── CHAMPION EDIT MODAL ─────────────────────────────────────────────── */
   .champ-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;
@@ -827,8 +846,9 @@
 
     <!-- ── TEAM PLANNER ── -->
     <div id="team-planner-wrap" style="display:none;">
+      <div id="tp-teams-row" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;overflow-x:auto;"></div>
       <div id="team-plan-cards"></div>
-      <button class="tp-add-btn" onclick="addTeamEntry()">+ Add Champion</button>
+      <button class="tp-add-btn" id="tp-add-champ-btn" onclick="addTeamEntry()">+ Add Champion</button>
       <div class="panel" id="team-plan-total" style="display:none;"></div>
     </div>
 
@@ -2130,15 +2150,114 @@ function nextTierCost(key){
 
 // ── TEAM PLANNER ──────────────────────────────────────────────────────────────
 let plannerMode='single';
-let teamPlan=[];
+let teams=[{name:'Team 1',entries:[]}];
+let activeTeamIdx=0;
+let teamPlan=teams[0].entries;
 let tpSearchOpen=null;
+let tpDeleteConfirm=null;
 
 function loadTeamPlan(){
-  try{const d=localStorage.getItem('mpc_teamplan');if(d)teamPlan=JSON.parse(d);}catch(e){}
-  teamPlan=teamPlan.filter(e=>e&&e.targetColor&&e.targetStar);
+  try{
+    const newData=localStorage.getItem('mpc_teams');
+    if(newData){
+      const parsed=JSON.parse(newData);
+      if(Array.isArray(parsed)&&parsed.length){
+        teams=parsed;
+        const ai=parseInt(localStorage.getItem('mpc_activeTeam'))||0;
+        activeTeamIdx=Math.min(ai,teams.length-1);
+      }
+    } else {
+      // Migrate old single-team format
+      const old=localStorage.getItem('mpc_teamplan');
+      if(old){const entries=JSON.parse(old);teams=[{name:'Team 1',entries:entries}];}
+    }
+  }catch(e){}
+  teams=teams.map(t=>({name:t.name||'Team',entries:(t.entries||[]).filter(e=>e&&e.targetColor&&e.targetStar)}));
+  if(!teams.length)teams=[{name:'Team 1',entries:[]}];
+  activeTeamIdx=Math.min(activeTeamIdx,teams.length-1);
+  teamPlan=teams[activeTeamIdx].entries;
 }
 function saveTeamPlan(){
-  try{localStorage.setItem('mpc_teamplan',JSON.stringify(teamPlan));}catch(e){}
+  try{
+    localStorage.setItem('mpc_teams',JSON.stringify(teams));
+    localStorage.setItem('mpc_activeTeam',String(activeTeamIdx));
+  }catch(e){}
+}
+
+function switchTeam(idx){
+  if(idx<0||idx>=teams.length)return;
+  activeTeamIdx=idx;
+  teamPlan=teams[idx].entries;
+  tpSearchOpen=null;
+  tpDeleteConfirm=null;
+  saveTeamPlan();
+  renderTeamPlan();
+}
+
+function addTeam(){
+  if(teams.length>=5)return;
+  let n=teams.length+1;
+  const names=new Set(teams.map(t=>t.name));
+  let name='Team '+n;
+  while(names.has(name)){n++;name='Team '+n;}
+  teams.push({name,entries:[]});
+  switchTeam(teams.length-1);
+}
+
+function deleteTeam(idx,e){
+  if(e)e.stopPropagation();
+  if(tpDeleteConfirm===idx){
+    teams.splice(idx,1);
+    if(!teams.length)teams=[{name:'Team 1',entries:[]}];
+    activeTeamIdx=Math.min(activeTeamIdx,teams.length-1);
+    teamPlan=teams[activeTeamIdx].entries;
+    tpSearchOpen=null;tpDeleteConfirm=null;
+    saveTeamPlan();renderTeamPlan();
+  }else{
+    tpDeleteConfirm=idx;
+    renderTeamTabs();
+    setTimeout(()=>{if(tpDeleteConfirm===idx){tpDeleteConfirm=null;renderTeamTabs();}},2500);
+  }
+}
+
+function startTpRename(idx,e){
+  if(e)e.stopPropagation();
+  const el=document.getElementById('tp-tab-name-'+idx);
+  if(!el)return;
+  const cur=teams[idx].name;
+  const inp=document.createElement('input');
+  inp.className='tp-team-name-input';
+  inp.value=cur;inp.maxLength=20;
+  inp.addEventListener('click',ev=>ev.stopPropagation());
+  inp.addEventListener('blur',()=>commitTpRename(idx,inp.value));
+  inp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter')inp.blur();
+    if(ev.key==='Escape'){inp.value=cur;inp.removeEventListener('blur',()=>commitTpRename(idx,inp.value));renderTeamTabs();}
+  });
+  el.innerHTML='';el.appendChild(inp);
+  inp.focus();inp.select();
+}
+
+function commitTpRename(idx,val){
+  const name=(val||'').trim();
+  if(name)teams[idx].name=name.slice(0,20);
+  saveTeamPlan();renderTeamTabs();
+}
+
+function renderTeamTabs(){
+  const el=document.getElementById('tp-teams-row');
+  if(!el)return;
+  el.innerHTML=teams.map((t,i)=>{
+    const isActive=i===activeTeamIdx;
+    const delConfirm=tpDeleteConfirm===i;
+    const delBtn=teams.length>1
+      ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm delete':'Remove team'}">&times;</button>`
+      :'';
+    return `<div class="tp-team-tab${isActive?' active':''}" onclick="switchTeam(${i})">`
+      +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" title="Double-click to rename">${t.name}</span>`
+      +delBtn+`</div>`;
+  }).join('')
+  +(teams.length<5?`<button class="tp-add-team-btn" onclick="addTeam()" title="New team">+</button>`:'');
 }
 
 function switchPlannerMode(mode){
@@ -2153,6 +2272,7 @@ function switchPlannerMode(mode){
 }
 
 function addTeamEntry(){
+  if(teamPlan.length>=5)return;
   teamPlan.push({id:null,targetColor:'red',targetStar:5});
   saveTeamPlan();
   renderTeamPlan();
@@ -2204,11 +2324,13 @@ function closeTpSearch(){tpSearchOpen=null;renderTeamPlan();}
 function renderTpSearchList(idx){
   const el=document.getElementById('tp-sinput-'+idx);
   const search=el?(el.value||'').toLowerCase().trim():'';
+  const usedIds=new Set(teamPlan.filter((e,i)=>i!==idx&&e.id).map(e=>e.id));
   const list=CHAMPIONS.filter(c=>!search||c.name.toLowerCase().includes(search));
   const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc'};
   const container=document.getElementById('tp-slist-'+idx);
   if(!container)return;
   container.innerHTML=list.map(c=>{
+    const disabled=usedIds.has(c.id);
     const imgSrc=CHAMP_IMGS[c.id]||'';
     const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const hue=c.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
@@ -2217,7 +2339,7 @@ function renderTpSearchList(idx){
       :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:hsl(${Math.abs(hue)%360},40%,22%);font-family:'Oswald',sans-serif;font-size:0.75rem;color:rgba(255,255,255,0.4);">${initials}</div>`;
     const status=champStatus(c.id);
     const levelStr=status!=='not-owned'?` · ${champLevelStr(c.id)}`:'';
-    return `<div class="cs-item" onclick="setTpChamp(${idx},'${c.id}')">
+    return `<div class="cs-item${disabled?' tp-disabled':''}" ${disabled?'':` onclick="setTpChamp(${idx},'${c.id}')"`}>
       <div class="cs-item-thumb">${thumb}</div>
       <div><div class="cs-item-name">${c.name}</div>
       <div class="cs-item-meta" style="color:${RARITY_COLOR[c.rarity]||'var(--text-dim)'};">${c.rarity} · ${c.class}${levelStr}</div></div>
@@ -2260,8 +2382,11 @@ function _tpTargetPickerHtml(idx,targetColor,targetStar){
 }
 
 function renderTeamPlan(){
+  renderTeamTabs();
   const cardsEl=document.getElementById('team-plan-cards');
   const totalEl=document.getElementById('team-plan-total');
+  const addBtn=document.getElementById('tp-add-champ-btn');
+  if(addBtn)addBtn.style.display=teamPlan.length>=5?'none':'';
   if(!cardsEl)return;
   const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc'};
   if(!teamPlan.length){
