@@ -328,21 +328,59 @@
   .coll-sort:hover{border-color:var(--accent);color:var(--text);}
   .coll-sort.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
 
-  /* ── TEAM FILTER CHIPS ────────────────────────────────────────────────── */
-  .team-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 5px;
-    border:1px solid var(--border);background:transparent;color:var(--text-dim);
-    font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.5px;
-    cursor:pointer;border-radius:20px;transition:all 0.15s;white-space:nowrap;}
-  .team-chip:hover{border-color:rgba(79,195,247,0.4);color:var(--text);}
-  .team-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
-  .team-chip-icon{width:22px;height:22px;object-fit:contain;border-radius:50%;flex-shrink:0;}
-  .team-chip-icon-fb{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.07);
+  /* ── ADVANCED FILTER DROPDOWNS (Team + Class) ─────────────────────────── */
+  .flt-dropdown{position:relative;}
+  .flt-dropdown-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;
+    border:1px solid var(--border);background:rgba(0,0,0,0.15);color:var(--text-dim);
+    font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:1px;
+    cursor:pointer;border-radius:6px;transition:all 0.15s;text-transform:uppercase;white-space:nowrap;}
+  .flt-dropdown-btn:hover{border-color:rgba(79,195,247,0.4);color:var(--text);}
+  .flt-dropdown-btn.has-selection{border-color:var(--accent);color:var(--accent);background:rgba(79,195,247,0.08);}
+  .flt-arrow{opacity:0.5;font-size:0.55rem;}
+  .flt-dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:210px;
+    background:#0d1a2a;border:1px solid rgba(79,195,247,0.35);border-radius:8px;
+    padding:5px;z-index:600;box-shadow:0 10px 36px rgba(0,0,0,0.7);
+    display:none;flex-direction:column;gap:1px;max-height:320px;overflow-y:auto;}
+  .flt-dropdown-panel.open{display:flex;}
+  .flt-item{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;
+    cursor:pointer;color:var(--text-dim);transition:background 0.1s;user-select:none;}
+  .flt-item:hover{background:rgba(79,195,247,0.07);color:var(--text);}
+  .flt-item.selected{background:rgba(79,195,247,0.1);color:var(--accent);}
+  .flt-item.flt-item-disabled{opacity:0.35;pointer-events:none;}
+  .flt-item-clear{border-bottom:none;}
+  .flt-item-icon{width:22px;height:22px;object-fit:contain;border-radius:50%;flex-shrink:0;}
+  .flt-tag-icon-class{border-radius:4px;}
+  .flt-item-icon-fb{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);
     display:inline-flex;align-items:center;justify-content:center;
-    font-size:0.5rem;font-weight:700;color:var(--text-dim);flex-shrink:0;}
-  .team-chip-label{text-transform:uppercase;}
+    font-family:'Share Tech Mono',monospace;font-size:0.48rem;font-weight:700;
+    color:var(--text-dim);flex-shrink:0;}
+  .flt-item-label{flex:1;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+    font-weight:600;letter-spacing:0.3px;}
+  .flt-item-count{font-family:'Share Tech Mono',monospace;font-size:0.52rem;
+    color:var(--text-dim);opacity:0.6;margin-right:4px;}
+  .flt-item-check{width:14px;height:14px;border:1px solid rgba(255,255,255,0.15);
+    border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:0.6rem;color:var(--accent);}
+  .flt-item.selected .flt-item-check{border-color:var(--accent);background:rgba(79,195,247,0.18);}
+  .flt-divider{height:1px;background:rgba(255,255,255,0.06);margin:3px 0;flex-shrink:0;}
+  /* Active filter tags */
+  .flt-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 7px 3px 4px;
+    border:1px solid rgba(79,195,247,0.45);background:rgba(79,195,247,0.08);
+    color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:0.55rem;
+    letter-spacing:0.3px;border-radius:20px;white-space:nowrap;}
+  .flt-tag-class{border-color:rgba(192,132,252,0.45);background:rgba(192,132,252,0.08);color:#c084fc;}
+  .flt-tag-icon{width:16px;height:16px;object-fit:contain;border-radius:50%;flex-shrink:0;}
+  .flt-tag-x{cursor:pointer;opacity:0.6;margin-left:1px;font-size:0.75rem;line-height:1;
+    transition:opacity 0.1s;}
+  .flt-tag-x:hover{opacity:1;}
+  .flt-clear-btn{padding:3px 9px;border:1px solid rgba(212,43,43,0.4);color:var(--mythic);
+    background:transparent;border-radius:4px;cursor:pointer;
+    font-family:'Share Tech Mono',monospace;font-size:0.55rem;letter-spacing:0.5px;
+    transition:all 0.15s;white-space:nowrap;}
+  .flt-clear-btn:hover{background:rgba(212,43,43,0.12);}
   @media(max-width:600px){
-    .team-chip{font-size:0.52rem;padding:3px 8px 3px 4px;}
-    .team-chip-icon,.team-chip-icon-fb{width:18px;height:18px;}
+    .flt-dropdown-btn{font-size:0.54rem;padding:5px 8px;}
+    .flt-dropdown-panel{min-width:180px;}
   }
 
   /* ── PROGRESS BAR ON CARD ─────────────────────────────────────────────── */
@@ -934,7 +972,19 @@
         <button class="coll-filter" id="co-not-owned" onclick="setCollOwnership('not-owned',this)">Not Owned</button>
         <button class="coll-filter" id="co-levelable" onclick="setCollOwnership('levelable',this)">Can Be Leveled</button>
       </div>
-      <!-- Row 3: Sort -->
+      <!-- Row 3: Team + Class dropdown filters -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        <div class="flt-dropdown">
+          <button class="flt-dropdown-btn" id="flt-team-btn" onclick="toggleFilterDropdown('flt-team-panel',event)">&#9883; Team <span class="flt-arrow">▾</span></button>
+          <div class="flt-dropdown-panel" id="flt-team-panel"></div>
+        </div>
+        <div class="flt-dropdown">
+          <button class="flt-dropdown-btn" id="flt-class-btn" onclick="toggleFilterDropdown('flt-class-panel',event)">&#9876; Class <span class="flt-arrow">▾</span></button>
+          <div class="flt-dropdown-panel" id="flt-class-panel"></div>
+        </div>
+        <div id="flt-tags-row" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;flex:1;"></div>
+      </div>
+      <!-- Row 4: Sort -->
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Sort:</span>
         <button class="coll-sort active" id="sort-rarity" onclick="setCollSort('rarity',this)">Rarity</button>
@@ -945,9 +995,7 @@
         <button class="coll-sort" id="sort-asc" onclick="setCollDir('asc',this)" title="Ascending">↑</button>
         <button class="coll-sort active" id="sort-desc" onclick="setCollDir('desc',this)" title="Descending">↓</button>
       </div>
-      <!-- Row 4: Team / Synergy filter chips -->
-      <div id="team-chip-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);"></div>
-      <!-- Team header (shown when a team chip is active) -->
+      <!-- Team/class summary header (shown when exactly 1 team active) -->
       <div id="team-filter-header" style="display:none;margin-bottom:10px;"></div>
       <div class="coll-grid" id="coll-grid"></div>
     </div>
@@ -1070,6 +1118,18 @@ const TEAMS_ORDER=[
   'Atlanteans','Flash Family','Green Lantern Corps','Outsiders',
   'Death Metal','League of Shadows',
 ];
+
+// Class icons — keyed by class name as it appears in CHAMPIONS[].class
+const CLASS_ICONS={
+  'Assassin':    _B+'class_assassin.png',
+  'Firepower':   _B+'class_firepower.png',
+  'Guardian':    _B+'class_guardian.png',
+  'Intimidator': _B+'class_intimidator.png',
+  'Magical':     _B+'class_magical.png',
+  'Supporter':   _B+'class_supporter.png',
+  'Warrior':     _B+'class_warrior.png',
+};
+const CLASSES_ORDER=['Warrior','Guardian','Supporter','Assassin','Firepower','Intimidator','Magical'];
 
 const STAR_TABLE={
   'white-0':{s:0,c:1},
@@ -2439,7 +2499,8 @@ let collDir='desc';
 let collOwnership='all';
 let collRarities=new Set(); // empty = no rarity filter (show all)
 let collPaywall=false;
-let collTeam=null; // null = All teams
+let collTeams=new Set();   // empty = all teams
+let collClasses=new Set(); // empty = all classes
 
 function setCollOwnership(f,btn){
   collOwnership=f;
@@ -2465,29 +2526,92 @@ function setCollFilter(f,btn){setCollOwnership(f,btn);}
 function setCollSort(s,btn){collSort=s;document.querySelectorAll('.coll-sort:not(#sort-asc):not(#sort-desc)').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCollection();}
 function setCollDir(d,btn){collDir=d;['sort-asc','sort-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',el.id==='sort-'+d);});renderCollection();}
 
-function setCollTeam(team){
-  collTeam=(collTeam===team)?null:team; // toggle: click active chip → clear
+// ── Advanced collection filters (Team + Class dropdowns) ──────────────────
+function _escQ(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+function toggleCollTeam(team){
+  if(team===null){collTeams.clear();}
+  else if(collTeams.has(team)){collTeams.delete(team);}
+  else{collTeams.add(team);}
   renderCollection();
 }
+function toggleCollClass(cls){
+  if(cls===null){collClasses.clear();}
+  else if(collClasses.has(cls)){collClasses.delete(cls);}
+  else{collClasses.add(cls);}
+  renderCollection();
+}
+function clearCollFilters(){collTeams.clear();collClasses.clear();renderCollection();}
 
-function buildTeamChips(){
-  const row=document.getElementById('team-chip-row');
-  if(!row)return;
-  // Build "All" chip
-  let html=`<button class="team-chip${collTeam===null?' active':''}" onclick="setCollTeam(null)">All</button>`;
-  TEAMS_ORDER.forEach(team=>{
-    const members=CHAMPIONS.filter(c=>c.teams&&c.teams.includes(team));
-    if(!members.length)return; // skip teams with no champions
-    const icon=TEAM_ICONS[team];
-    const active=collTeam===team?' active':'';
-    const iconHtml=icon
-      ?`<img src="${icon}" alt="${team}" class="team-chip-icon" onerror="this.style.display='none'">`
-      :`<span class="team-chip-icon-fb">${team.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`;
-    html+=`<button class="team-chip${active}" onclick="setCollTeam('${team.replace(/'/g,"\\'")}')">
-      ${iconHtml}<span class="team-chip-label">${team}</span>
-    </button>`;
+function toggleFilterDropdown(panelId,event){
+  event.stopPropagation();
+  const panel=document.getElementById(panelId);
+  if(!panel)return;
+  const wasOpen=panel.classList.contains('open');
+  document.querySelectorAll('.flt-dropdown-panel.open').forEach(p=>p.classList.remove('open'));
+  if(!wasOpen)panel.classList.add('open');
+}
+document.addEventListener('click',function(){
+  document.querySelectorAll('.flt-dropdown-panel.open').forEach(p=>p.classList.remove('open'));
+});
+
+function _fltIcon(icon,alt,cls){
+  return icon
+    ?`<img src="${icon}" alt="${alt}" class="${cls}" onerror="this.style.display='none'">`
+    :`<span class="flt-item-icon-fb">${alt.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</span>`;
+}
+
+function buildFilterPanel(panelId,items,activeSet,icons,toggleFn,countFn){
+  const panel=document.getElementById(panelId);
+  if(!panel)return;
+  const clearDis=activeSet.size===0?' flt-item-disabled':'';
+  let html=`<div class="flt-item flt-item-clear${clearDis}" onclick="${toggleFn}(null)"><span class="flt-item-label">Clear selection</span></div>`
+    +`<div class="flt-divider"></div>`;
+  items.forEach(item=>{
+    const n=countFn(item);
+    if(!n)return;
+    const sel=activeSet.has(item)?' selected':'';
+    const icon=icons[item]||null;
+    const iconHtml=_fltIcon(icon,item,'flt-item-icon');
+    html+=`<div class="flt-item${sel}" onclick="${toggleFn}('${_escQ(item)}')">`
+      +iconHtml
+      +`<span class="flt-item-label">${item}</span>`
+      +`<span class="flt-item-count">${n}</span>`
+      +`<span class="flt-item-check">${sel?'✓':''}</span>`
+      +`</div>`;
   });
-  row.innerHTML=html;
+  panel.innerHTML=html;
+}
+
+function buildFilterDropdowns(){
+  const teamCount=item=>CHAMPIONS.filter(c=>c.teams&&c.teams.includes(item)).length;
+  const clsCount=item=>CHAMPIONS.filter(c=>c.class===item).length;
+  buildFilterPanel('flt-team-panel',TEAMS_ORDER,collTeams,TEAM_ICONS,'toggleCollTeam',teamCount);
+  buildFilterPanel('flt-class-panel',CLASSES_ORDER,collClasses,CLASS_ICONS,'toggleCollClass',clsCount);
+
+  const teamBtn=document.getElementById('flt-team-btn');
+  if(teamBtn)teamBtn.classList.toggle('has-selection',collTeams.size>0);
+  const classBtn=document.getElementById('flt-class-btn');
+  if(classBtn)classBtn.classList.toggle('has-selection',collClasses.size>0);
+
+  // Active filter tags
+  const tagsRow=document.getElementById('flt-tags-row');
+  if(!tagsRow)return;
+  let html='';
+  collTeams.forEach(team=>{
+    const icon=TEAM_ICONS[team]||null;
+    html+=`<span class="flt-tag">${_fltIcon(icon,team,'flt-tag-icon')}<span>${team}</span>`
+      +`<span class="flt-tag-x" onclick="toggleCollTeam('${_escQ(team)}')">×</span></span>`;
+  });
+  collClasses.forEach(cls=>{
+    const icon=CLASS_ICONS[cls]||null;
+    html+=`<span class="flt-tag flt-tag-class">${_fltIcon(icon,cls,'flt-tag-icon flt-tag-icon-class')}<span>${cls}</span>`
+      +`<span class="flt-tag-x" onclick="toggleCollClass('${_escQ(cls)}')">×</span></span>`;
+  });
+  if(collTeams.size>0||collClasses.size>0){
+    html+=`<button class="flt-clear-btn" onclick="clearCollFilters()">Clear all</button>`;
+  }
+  tagsRow.innerHTML=html;
 }
 
 // Rarity rank for sorting (lower = higher priority)
@@ -2507,14 +2631,17 @@ function champProgressPct(id){
 }
 
 function renderCollection(){
-  buildTeamChips();
+  buildFilterDropdowns();
 
   const search=(document.getElementById('coll-search').value||'').toLowerCase().trim();
   let list=CHAMPIONS.filter(c=>{
     if(search&&!c.name.toLowerCase().includes(search))return false;
 
-    // Team filter
-    if(collTeam&&!(c.teams&&c.teams.includes(collTeam)))return false;
+    // Team filter (multi — champion must belong to at least one selected team)
+    if(collTeams.size>0&&!(c.teams&&c.teams.some(t=>collTeams.has(t))))return false;
+
+    // Class filter (multi — champion must match at least one selected class)
+    if(collClasses.size>0&&!collClasses.has(c.class))return false;
 
     const s=champStatus(c.id);
 
@@ -2582,19 +2709,20 @@ function renderCollection(){
   const maxed=CHAMPIONS.filter(c=>champStatus(c.id)==='maxed').length;
   document.getElementById('coll-stats').innerHTML='<span>'+owned+'</span>/'+CHAMPIONS.length+' owned &nbsp;·&nbsp; <span>'+maxed+'</span> maxed';
 
-  // Team header
+  // Team header — only when exactly 1 team selected (member count summary)
   const teamHeader=document.getElementById('team-filter-header');
   if(teamHeader){
-    if(collTeam){
-      const teamAll=CHAMPIONS.filter(c=>c.teams&&c.teams.includes(collTeam));
+    if(collTeams.size===1){
+      const activeTeam=[...collTeams][0];
+      const teamAll=CHAMPIONS.filter(c=>c.teams&&c.teams.includes(activeTeam));
       const teamOwned=teamAll.filter(c=>champStatus(c.id)!=='not-owned').length;
-      const icon=TEAM_ICONS[collTeam];
-      const iconHtml=icon?`<img src="${icon}" alt="${collTeam}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;border-radius:50%;">`:'';
+      const icon=TEAM_ICONS[activeTeam];
+      const iconHtml=icon?`<img src="${icon}" alt="${activeTeam}" style="width:22px;height:22px;object-fit:contain;border-radius:50%;">`:'' ;
       teamHeader.style.display='block';
-      teamHeader.innerHTML=`<div style="display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:1px;color:var(--text-dim);padding:6px 10px;background:rgba(79,195,247,0.04);border:1px solid rgba(79,195,247,0.12);border-radius:6px;">`
+      teamHeader.innerHTML=`<div style="display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:1px;color:var(--text-dim);padding:6px 10px;background:rgba(79,195,247,0.04);border:1px solid rgba(79,195,247,0.12);border-radius:6px;">`
         +iconHtml
-        +`<span style="color:var(--accent);font-weight:700;text-transform:uppercase;">${collTeam}</span>`
-        +`<span style="margin:0 4px;">·</span>`
+        +`<span style="color:var(--accent);font-weight:700;text-transform:uppercase;">${activeTeam}</span>`
+        +`<span>·</span>`
         +`<span><span style="color:var(--accent);">${teamOwned}</span> / ${teamAll.length} owned</span>`
         +`</div>`;
     } else {
