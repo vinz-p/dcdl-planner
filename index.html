@@ -1088,10 +1088,12 @@ function setBatch(n){
 }
 function stepLog(id,d){const el=document.getElementById(id);if(!el)return;el.value=Math.max(0,(parseInt(el.value)||0)+d);onLogChange();}
 
+let _regularMythicCache=null;
 function _regularMythicIds(){
-  // All non-paywall Mythics not on banner
+  if(_regularMythicCache)return _regularMythicCache;
   const bannerIds=new Set([bannerState.limited,...bannerState.hl].filter(Boolean));
-  return CHAMPIONS.filter(c=>c.rarity==='Mythic'&&!c.paywall&&!bannerIds.has(c.id)).map(c=>c.id);
+  _regularMythicCache=CHAMPIONS.filter(c=>c.rarity==='Mythic'&&!c.paywall&&!bannerIds.has(c.id)).map(c=>c.id);
+  return _regularMythicCache;
 }
 
 function resetLogInputs(){
@@ -2807,6 +2809,7 @@ function loadBannerState(){
   }catch(e){}
 }
 function saveBannerState(){
+  _regularMythicCache=null;
   try{localStorage.setItem('mpc_banners',JSON.stringify({states:bannerStates,active:activeBannerIdx}));}catch(e){}
 }
 loadBannerState();
