@@ -143,7 +143,7 @@
   .color-picker{flex-wrap:wrap;}
   .cp-btn{width:28px;height:28px;font-size:0.58rem;}
   .cp-btn.cp-none{height:28px;font-size:0.65rem;}
-  .sp-star{font-size:1rem;}
+  .sp-star{font-size:0.85rem;}
 
   /* Non-lim dot picker — wrap */
   .nonlim-dot-picker{flex-wrap:wrap;gap:4px;}
@@ -189,7 +189,7 @@
   .cp-btn.cp-none.active{border-color:var(--accent);color:var(--accent);box-shadow:none;}
   /* STAR PICKER */
   .star-picker{display:flex;gap:1px;align-items:center;}
-  .sp-star{font-size:1.15rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
+  .sp-star{font-size:0.9rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
   .sp-star:hover,.sp-star.active{opacity:1;filter:none;}
   .sp-star.active{transform:scale(1.08);}
   /* COMBINED COLOR+STAR ROW */
@@ -675,7 +675,7 @@
   .cp-btn.cp-none.active{border-color:var(--accent);color:var(--accent);box-shadow:none;}
   /* STAR PICKER */
   .star-picker{display:flex;gap:1px;align-items:center;}
-  .sp-star{font-size:1.15rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
+  .sp-star{font-size:0.9rem;cursor:pointer;transition:all 0.1s;opacity:0.25;filter:grayscale(1);line-height:1;padding:1px;}
   .champ-modal .sp-star{font-size:1.4rem;padding:3px;}
   .sp-star:hover,.sp-star.active{opacity:1;filter:none;}
   .sp-star.active{transform:scale(1.08);}
@@ -1131,6 +1131,7 @@
           <button class="btn-step" onclick="stepLog('batch-shards',-1)">&#8722;</button>
           <input type="number" id="batch-shards" value="0" min="0" max="999" oninput="onLogChange()">
           <button class="btn-step" onclick="stepLog('batch-shards',1)">+</button>
+          <button class="btn-step-5" onclick="stepLog('batch-shards',5)">+5</button>
         </div>
       </div>
       <div id="log-validation" style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;margin:0 0 10px;display:none;"></div>
@@ -2441,8 +2442,10 @@ function renderTeamSummary(){
         resultHtml=`<div class="tp-slot-result" style="color:#4ade80;">&#10003; Done</div>`;
       }else{
         resultHtml=`<div class="tp-slot-result">`
-          +`<span class="tp-exp">${_fmtAnvils(calc.expected)}</span> exp<br>`
-          +`<span class="tp-wc">${_fmtAnvils(calc.worstCase)}</span> worst`
+          +`<span class="tp-exp">${_fmtAnvils(calc.expected)}</span>`
+          +`<span style="opacity:0.35;"> exp · </span>`
+          +`<span class="tp-wc">${_fmtAnvils(calc.worstCase)}</span>`
+          +`<span style="opacity:0.35;"> wc</span>`
           +`</div>`;
       }
     }
