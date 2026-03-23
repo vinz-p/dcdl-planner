@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DCDL Bleed Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 
   :root {
@@ -511,6 +512,34 @@
     line-height:1.4;transition:all 0.15s;opacity:0;pointer-events:none;}
   .tp-slot:not(.empty):hover .tp-slot-remove{opacity:1;pointer-events:auto;}
   .tp-slot-remove:hover{background:rgba(212,43,43,0.7);color:#fff;}
+  .tp-slot.dragging{opacity:0.35;outline:2px dashed var(--accent);}
+  .tp-slot.drag-over{outline:2px solid var(--legendary);background:rgba(240,165,0,0.08);}
+  .tp-conflict-badge{position:absolute;top:4px;left:4px;background:rgba(240,165,0,0.9);color:#000;
+    border-radius:3px;font-size:0.55rem;padding:1px 4px;line-height:1.4;
+    font-family:'Share Tech Mono',monospace;pointer-events:none;z-index:3;}
+  .tp-team-dup{background:none;border:none;color:rgba(255,255,255,0.25);cursor:pointer;
+    padding:0 0 0 2px;font-size:0.85rem;line-height:1;transition:color 0.15s;flex-shrink:0;}
+  .tp-team-dup:hover{color:var(--accent);}
+  .hist-view-tab{padding:3px 10px;border:1px solid var(--border);background:transparent;
+    color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.58rem;
+    letter-spacing:1px;cursor:pointer;border-radius:4px;transition:all 0.15s;}
+  .hist-view-tab.active{background:rgba(79,195,247,0.08);border-color:var(--accent);color:var(--accent);}
+  .hist-sum-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+  .hist-sum-table th{font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-dim);
+    letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+  .hist-sum-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);
+    font-family:'Share Tech Mono',monospace;font-size:0.72rem;}
+  .cc-wish-btn{position:absolute;bottom:28px;right:5px;background:none;border:none;
+    cursor:pointer;font-size:0.9rem;color:rgba(255,255,255,0.18);padding:2px;z-index:2;
+    line-height:1;transition:color 0.15s;}
+  .cc-wish-btn:hover{color:var(--legendary);}
+  .cc-wish-btn.active{color:#facc15;}
+  .tp-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:#0d2237;border:1px solid var(--accent);color:var(--accent);
+    font-family:'Share Tech Mono',monospace;font-size:0.75rem;letter-spacing:1px;
+    padding:9px 20px;border-radius:20px;z-index:9999;opacity:0;pointer-events:none;
+    transition:opacity 0.25s;white-space:nowrap;}
+  .tp-toast.active{opacity:1;}
   /* Team planner champion picker overlay */
   .tp-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;
     display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
@@ -1139,8 +1168,20 @@
 
     <!-- HISTORY -->
     <div class="panel">
-      <div class="panel-title"><span>PULL HISTORY</span><div style="display:flex;gap:6px;"><button class="danger-btn" onclick="clearPullHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear History</button><button class="danger-btn" onclick="copyShareSummary()" id="share-btn" style="border-color:var(--accent-dim);color:var(--accent);background:rgba(79,195,247,0.06);">Copy Summary</button></div></div>
+      <div class="panel-title">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span>PULL HISTORY</span>
+          <button class="hist-view-tab active" id="hv-log" onclick="setHistoryView('log',this)">Log</button>
+          <button class="hist-view-tab" id="hv-summary" onclick="setHistoryView('summary',this)">Summary</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="danger-btn" onclick="exportHistoryCSV()" style="border-color:var(--accent-dim);color:var(--accent);">Export CSV</button>
+          <button class="danger-btn" onclick="clearPullHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear History</button>
+          <button class="danger-btn" onclick="copyShareSummary()" id="share-btn" style="border-color:var(--accent-dim);color:var(--accent);background:rgba(79,195,247,0.06);">Copy Summary</button>
+        </div>
+      </div>
       <div class="history-list" id="history-list"><div class="history-empty">No pulls logged yet</div></div>
+      <div id="history-summary" style="display:none;"></div>
     </div>
 
   </div>
@@ -1170,6 +1211,7 @@
         <button class="coll-filter" id="co-owned" onclick="setCollOwnership('owned',this)">Owned</button>
         <button class="coll-filter" id="co-not-owned" onclick="setCollOwnership('not-owned',this)">Not Owned</button>
         <button class="coll-filter" id="co-levelable" onclick="setCollOwnership('levelable',this)">Can Be Leveled</button>
+        <button class="coll-filter" id="co-wishlist" onclick="setCollOwnership('wishlist',this)">&#9733; Wishlist</button>
       </div>
       <!-- Row 3: Team + Class dropdown filters -->
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);">
@@ -1197,6 +1239,12 @@
       <!-- Team/class summary header (shown when exactly 1 team active) -->
       <div id="team-filter-header" style="display:none;margin-bottom:10px;"></div>
       <div class="coll-grid" id="coll-grid"></div>
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Data:</span>
+        <button class="danger-btn" onclick="exportAllData()" style="border-color:var(--accent-dim);color:var(--accent);">Export JSON</button>
+        <button class="danger-btn" onclick="document.getElementById('import-file-input').click()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);">Import JSON</button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
     </div>
   </div>
 
@@ -1391,6 +1439,7 @@ function tierConsumed(key){return key&&key!=='none'?(STAR_TABLE[key]||{s:0}).s:0
 
 let scenario='expected',nonLimMode='exact',batchSize=1;
 let history=[];
+let historyView='log';
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
 function saveState(){
@@ -1625,6 +1674,7 @@ function submitBatch(){
 }
 
 function renderHistory(){
+  if(historyView==='summary')renderHistorySummary();
   const el=document.getElementById('history-list');
   if(!el)return;
   if(!history.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
@@ -2291,6 +2341,7 @@ let activeTeamIdx=0;
 let teamPlan=teams[0].entries;
 let tpSearchOpen=null;
 let tpDeleteConfirm=null;
+let tpDragIdx=null;
 
 function loadTeamPlan(){
   try{
@@ -2380,6 +2431,235 @@ function commitTpRename(idx,val){
   saveTeamPlan();renderTeamPlan();
 }
 
+// ── DRAG TO REORDER SLOTS ──────────────────────────────────────────────────
+function tpDragStart(i,e){
+  tpDragIdx=i;
+  e.dataTransfer.effectAllowed='move';
+  // Can't directly class the element during template re-render; use a timeout
+  setTimeout(()=>{
+    const slots=document.querySelectorAll('.tp-slot[draggable]');
+    if(slots[i])slots[i].classList.add('dragging');
+  },0);
+}
+function tpDragOver(i,e){
+  if(tpDragIdx===null||tpDragIdx===i)return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.tp-slot').forEach((s,si)=>{
+    s.classList.toggle('drag-over',si===i);
+  });
+}
+function tpDragLeave(i,e){
+  // Only remove if leaving to outside (not child)
+  if(!e.currentTarget.contains(e.relatedTarget)){
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+function tpDrop(i,e){
+  e.preventDefault();
+  if(tpDragIdx===null||tpDragIdx===i){tpDragIdx=null;return;}
+  const entries=teams[activeTeamIdx].entries;
+  // Ensure both indices exist
+  while(entries.length<=Math.max(tpDragIdx,i))entries.push({id:null,targetColor:'red',targetStar:5});
+  const moved=entries.splice(tpDragIdx,1)[0];
+  entries.splice(i,0,moved);
+  tpDragIdx=null;
+  saveTeamPlan();renderTeamPlan();
+}
+function tpDragEnd(e){
+  tpDragIdx=null;
+  document.querySelectorAll('.tp-slot').forEach(s=>s.classList.remove('dragging','drag-over'));
+}
+
+// ── DUPLICATE TEAM ─────────────────────────────────────────────────────────
+function duplicateTeam(i,e){
+  if(e)e.stopPropagation();
+  if(teams.length>=5)return;
+  const src=teams[i];
+  let name=src.name+' (2)';
+  const existingNames=new Set(teams.map(t=>t.name));
+  let n=2;
+  while(existingNames.has(name)){n++;name=src.name+' ('+n+')';}
+  const entries=src.entries.map(en=>({...en}));
+  teams.push({name,entries});
+  switchTeam(teams.length-1);
+}
+
+// ── CROSS-TEAM CONFLICTS ───────────────────────────────────────────────────
+function buildCrossTeamConflicts(){
+  const s=new Set();
+  teams.forEach((t,i)=>{
+    if(i===activeTeamIdx)return;
+    t.entries.forEach(e=>{if(e.id)s.add(e.id);});
+  });
+  return s;
+}
+
+// ── HISTORY SUMMARY + CSV ──────────────────────────────────────────────────
+function setHistoryView(v,btn){
+  historyView=v;
+  document.querySelectorAll('.hist-view-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const listEl=document.getElementById('history-list');
+  const sumEl=document.getElementById('history-summary');
+  if(listEl)listEl.style.display=v==='log'?'':'none';
+  if(sumEl)sumEl.style.display=v==='summary'?'':'none';
+  if(v==='summary')renderHistorySummary();
+}
+function renderHistorySummary(){
+  const el=document.getElementById('history-summary');
+  if(!el)return;
+  if(!history.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
+  const map={};
+  history.forEach(e=>{
+    const key=e.bonusName||'None';
+    if(!map[key])map[key]={name:key,bonusShards:0,entries:0,pulls:0};
+    map[key].bonusShards+=e.shards||0;
+    map[key].entries++;
+    map[key].pulls+=e.batch||0;
+  });
+  const rows=Object.values(map).sort((a,b)=>b.bonusShards-a.bonusShards);
+  el.innerHTML=`<table class="hist-sum-table">
+    <thead><tr>
+      <th>Champion</th><th>Pulls</th><th>Entries</th><th>Bonus Shards</th>
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td>${r.name}</td>
+      <td style="color:var(--text);">${r.pulls}</td>
+      <td style="color:var(--text-dim);">${r.entries}</td>
+      <td style="color:var(--green);">${r.bonusShards>0?'+'+r.bonusShards:'—'}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+function exportHistoryCSV(){
+  if(!history.length){alert('No history to export.');return;}
+  const hdr=['Date','Pulls','Limited','Highlighted','Regular','Legendary','BonusChamp','BonusShards','AutoShards'];
+  const rows=history.map(e=>[
+    e.ts||'',e.batch||0,
+    (e.counts||{}).limited||0,(e.counts||{}).highlighted||0,
+    (e.counts||{}).regular||0,(e.counts||{}).legendary||0,
+    e.bonusName||'',e.shards||0,e.autoShards||0,
+  ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv=[hdr.join(','),...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='dcdl-pulls.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── WISHLIST ───────────────────────────────────────────────────────────────
+function toggleWishlist(id){
+  if(!champData[id])champData[id]={color:'none',star:1,shards:0};
+  if(champData[id].wishlist)delete champData[id].wishlist;
+  else champData[id].wishlist=true;
+  saveChampData();renderCollection();
+}
+
+// ── EXPORT / IMPORT JSON ───────────────────────────────────────────────────
+function exportAllData(){
+  const payload={
+    version:2,exportedAt:new Date().toISOString(),
+    champData:champData,teams:teams,activeTeamIdx:activeTeamIdx,history:history,
+    settings:{
+      ownedColor:document.getElementById('ownedColor').value,
+      ownedStar:document.getElementById('ownedStar').value,
+      targetColor:document.getElementById('targetColor').value,
+      targetStar:document.getElementById('targetStar').value,
+      shards:document.getElementById('shards').value,
+      scenario:scenario,batchSize:batchSize,
+    },
+    banners:{states:bannerStates,active:activeBannerIdx},
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date().toISOString().slice(0,10);
+  a.href=url;a.download=`dcdl-planner-${d}.json`;a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    let data;
+    try{data=JSON.parse(e.target.result);}catch(err){alert('Invalid JSON file.');return;}
+    if(!data.version||data.version<2){alert('Unsupported backup format.');return;}
+    if(!confirm('This will replace ALL your data (champions, teams, history, settings). Continue?'))return;
+    if(data.champData)champData=data.champData;
+    if(data.teams&&data.teams.length)teams=data.teams;
+    if(typeof data.activeTeamIdx==='number')activeTeamIdx=Math.min(data.activeTeamIdx,teams.length-1);
+    teamPlan=teams[activeTeamIdx]?teams[activeTeamIdx].entries:[];
+    if(Array.isArray(data.history))history=data.history;
+    if(data.settings){
+      const s=data.settings;
+      ['ownedColor','ownedStar','targetColor','targetStar','shards'].forEach(k=>{
+        const el=document.getElementById(k);if(el&&s[k]!=null)el.value=s[k];
+      });
+      if(s.scenario)scenario=s.scenario;
+      if(s.batchSize)batchSize=Number(s.batchSize)||1;
+    }
+    if(data.banners){
+      if(data.banners.states)bannerStates=data.banners.states;
+      if(typeof data.banners.active==='number')activeBannerIdx=data.banners.active;
+    }
+    saveChampData();saveTeamPlan();saveState();saveBannerState();
+    event.target.value='';
+    location.reload();
+  };
+  reader.readAsText(file);
+}
+
+// ── IMAGE EXPORT ───────────────────────────────────────────────────────────
+function exportTeamImage(){
+  if(typeof html2canvas==='undefined'){alert('Image export unavailable (html2canvas failed to load).');return;}
+  const btn=document.getElementById('tp-export-img-btn');
+  const el=document.querySelector('.tp-summary');
+  if(!el)return;
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#0d1117',logging:false})
+    .then(canvas=>{
+      const url=canvas.toDataURL('image/png');
+      const a=document.createElement('a');
+      const name=((teams[activeTeamIdx]||{}).name||'team').replace(/\s+/g,'-').toLowerCase();
+      a.href=url;a.download=`dcdl-${name}.png`;a.click();
+    })
+    .catch(err=>{console.error('html2canvas error:',err);alert('Image export failed.');})
+    .finally(()=>{if(btn){btn.textContent='&#128248; Image';btn.disabled=false;}});
+}
+
+// ── SHAREABLE TEAM LINK ────────────────────────────────────────────────────
+function showToast(msg){
+  let t=document.getElementById('tp-toast');
+  if(!t){t=document.createElement('div');t.id='tp-toast';document.body.appendChild(t);}
+  t.textContent=msg;t.className='tp-toast active';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('active'),2400);
+}
+function shareTeam(){
+  const team=teams[activeTeamIdx];
+  if(!team)return;
+  try{
+    const encoded=btoa(encodeURIComponent(JSON.stringify(team)));
+    const url=window.location.href.split('#')[0]+'#team='+encoded;
+    navigator.clipboard.writeText(url)
+      .then(()=>showToast('Link copied to clipboard!'))
+      .catch(()=>prompt('Copy this link:',url));
+  }catch(err){alert('Could not generate link.');}
+}
+function importSharedTeam(){
+  const teamObj=window._pendingSharedTeam;
+  if(!teamObj)return;
+  if(teams.length>=5){alert('You already have 5 teams. Remove one first.');return;}
+  teams.push(teamObj);
+  switchTeam(teams.length-1);
+  window.history.pushState('','',window.location.pathname);
+  const b=document.getElementById('team-link-banner');
+  if(b)b.remove();
+  window._pendingSharedTeam=null;
+}
+
 function _fmtAnvils(n){
   if(!n||n<=0)return'0';
   return n>=1000?`${(n/1000).toFixed(1)}K`:String(n);
@@ -2416,6 +2696,9 @@ function renderTeamTabs(){
     const delBtn=teams.length>1
       ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm':'Remove team'}">&times;</button>`
       :'';
+    const dupBtn=teams.length<5
+      ?`<button class="tp-team-dup" onclick="duplicateTeam(${i},event)" title="Duplicate team">&#9113;</button>`
+      :'';
     const anvilLine=tCalc>0
       ?`<div class="tp-tab-anvils">`
         +`<span style="color:var(--accent);">${_fmtAnvils(tExp)}</span>`
@@ -2428,7 +2711,7 @@ function renderTeamTabs(){
       +`<div style="display:flex;align-items:center;gap:4px;">`
         +(factionIcons?`<div style="display:flex;gap:2px;">${factionIcons}</div>`:'')
         +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" style="flex:1;min-width:0;" title="Double-click to rename">${t.name}</span>`
-        +delBtn
+        +dupBtn+delBtn
       +`</div>`
       +anvilLine
       +`</div>`;
@@ -2482,6 +2765,7 @@ function renderTeamSummary(){
       +`</div>`;
   }).join('');
   // 5 banner-style slots
+  const crossTeamConflicts=buildCrossTeamConflicts();
   const slots=Array.from({length:5},(_,i)=>{
     const entry=entries[i];
     if(!entry||!entry.id){
@@ -2528,7 +2812,13 @@ function renderTeamSummary(){
           +`</div>`;
       }
     }
-    return `<div class="tp-slot">
+    const conflictBadge=crossTeamConflicts.has(entry.id)
+      ?`<div class="tp-conflict-badge" title="Also in another team">&#9888;</div>`:'';
+    return `<div class="tp-slot" draggable="true"
+      ondragstart="tpDragStart(${i},event)" ondragover="tpDragOver(${i},event)"
+      ondragleave="tpDragLeave(${i},event)" ondrop="tpDrop(${i},event)"
+      ondragend="tpDragEnd(event)">
+      ${conflictBadge}
       <div style="cursor:pointer;" onclick="openChampModal('${entry.id}')" title="Edit ${name}">
         ${portrait}
         <div class="tp-slot-info">
@@ -2568,7 +2858,11 @@ function renderTeamSummary(){
   el.innerHTML=`<div class="tp-summary">`
     +`<div class="tp-summary-header">`
       +`<div class="tp-summary-name">${team.name}</div>`
-      +`<button class="tp-summary-rename" onclick="startTpRename(${activeTeamIdx},event)">&#9998; Rename</button>`
+      +`<div style="display:flex;gap:6px;align-items:center;">`
+        +`<button class="tp-summary-rename" onclick="startTpRename(${activeTeamIdx},event)">&#9998; Rename</button>`
+        +`<button class="tp-summary-rename" onclick="shareTeam()" title="Copy shareable link">&#128279; Share</button>`
+        +`<button class="tp-summary-rename" onclick="exportTeamImage()" id="tp-export-img-btn" title="Export team as image">&#128248; Image</button>`
+      +`</div>`
     +`</div>`
     +(factionHtml?`<div class="tp-factions-row">${factionHtml}</div>`:'')
     +`<div class="tp-slot-row">${slots}</div>`
@@ -2599,6 +2893,7 @@ function renderTpPickerList(){
   const q=(document.getElementById('tp-picker-input').value||'').toLowerCase().trim();
   const team=teams[activeTeamIdx];
   const usedIds=new Set(team.entries.filter(e=>e.id).map(e=>e.id));
+  const crossConflicts=buildCrossTeamConflicts();
   const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc'};
   const list=CHAMPIONS.filter(c=>{
     if(c.rarity==='Epic')return false;
@@ -2620,11 +2915,13 @@ function renderTpPickerList(){
     const d=champData[c.id];
     const lvl=champLevelStr(c.id);
     const lvlColor=d&&d.color&&d.color!=='none'?tierColor(d.color):'var(--text-dim)';
+    const inOther=!taken&&crossConflicts.has(c.id);
+    const otherTag=inOther?`<span style="color:var(--legendary);font-size:0.48rem;"> · in other team</span>`:'';
     return `<div class="tp-picker-item${taken?' taken':''}" onclick="pickTpSlotChamp('${c.id}')">
       ${portrait}
       <div style="flex:1;min-width:0;">
         <div class="tp-picker-name">${c.name}</div>
-        <div class="tp-picker-meta" style="color:${rc};">${c.rarity} · ${c.class}</div>
+        <div class="tp-picker-meta" style="color:${rc};">${c.rarity} · ${c.class}${otherTag}</div>
       </div>
       <div class="tp-picker-level" style="color:${lvlColor};">${lvl}</div>
     </div>`;
@@ -3460,6 +3757,7 @@ function renderCollection(keepOpenPanelId){
     // Ownership filter (radio)
     if(collOwnership==='owned'&&s!=='owned'&&s!=='maxed')return false;
     if(collOwnership==='not-owned'&&s!=='not-owned')return false;
+    if(collOwnership==='wishlist'&&!(champData[c.id]||{}).wishlist)return false;
     if(collOwnership==='levelable'){
       if(s==='not-owned'||s==='maxed')return false;
       const d=champData[c.id]||{};
@@ -3620,12 +3918,14 @@ function renderCollection(keepOpenPanelId){
     const hoverBorder=RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.4)';
     const hoverGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none').replace('0.28','0.45').replace('0.18','0.35'):'0 4px 14px rgba(79,195,247,0.15)';
 
+    const isWishlisted=!!(champData[c.id]||{}).wishlist;
+    const wishBtn=`<button class="cc-wish-btn${isWishlisted?' active':''}" onclick="event.stopPropagation();toggleWishlist('${c.id}')" title="${isWishlisted?'Remove from wishlist':'Add to wishlist'}">${isWishlisted?'&#9733;':'&#9734;'}</button>`;
     return `<div class="${cardClass}" style="border-color:${baseBorder};box-shadow:${baseGlow};"
       onmouseenter="this.style.outline='1.5px solid ${hoverBorder}';this.style.outlineOffset='-1px';this.style.boxShadow='${hoverGlow}';this.style.transform='translateY(-3px)'"
       onmouseleave="this.style.outline='';this.style.boxShadow='${baseGlow}';this.style.transform=''"
       onclick="openChampModal('${c.id}')">
       <div class="cc-rarity-strip" style="background:${rarityStrip};opacity:${s==='not-owned'?'0.35':'1'};"></div>
-      ${badge}${imgHtml}
+      ${wishBtn}${badge}${imgHtml}
       <div class="cc-info">
         <div class="cc-name">${c.name}</div>
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.rarity||''}</div>
@@ -4170,6 +4470,27 @@ window._initInProgress=false;
 try{const sec=localStorage.getItem('mpc_section');if(sec&&['planner','banner','collection'].includes(sec))switchSection(sec);}catch(e){}
 // Restore planner mode (single/team)
 try{const pm=localStorage.getItem('mpc_plannerMode');if(pm==='team')switchPlannerMode('team');}catch(e){}
+// Check for shared team link
+(function checkTeamHash(){
+  const hash=window.location.hash;
+  if(!hash.startsWith('#team='))return;
+  try{
+    const teamObj=JSON.parse(decodeURIComponent(atob(hash.slice(6))));
+    if(!teamObj||!Array.isArray(teamObj.entries))return;
+    window._pendingSharedTeam=teamObj;
+    const banner=document.createElement('div');
+    banner.id='team-link-banner';
+    banner.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:8000;width:min(520px,92vw);';
+    banner.innerHTML=`<div style="background:rgba(13,34,55,0.97);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;color:var(--accent);flex-wrap:wrap;">
+      <span>&#128279; Team link detected &mdash; <strong style="color:var(--text);">${(teamObj.name||'Shared Team').replace(/</g,'&lt;')}</strong></span>
+      <div style="display:flex;gap:6px;margin-left:auto;">
+        <button class="danger-btn" onclick="importSharedTeam()" style="border-color:var(--accent);color:var(--accent);">Import Team</button>
+        <button class="danger-btn" onclick="window.history.pushState('','',window.location.pathname);document.getElementById('team-link-banner').remove();" style="border-color:var(--border);color:var(--text-dim);">Dismiss</button>
+      </div>
+    </div>`;
+    document.body.appendChild(banner);
+  }catch(e){}
+})();
 
 </script>
 <!-- BANNER SLOT SELECT MODAL -->
