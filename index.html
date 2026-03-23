@@ -924,7 +924,6 @@
           <div class="settings-col-label">Shards Owned</div>
           <div style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;flex-wrap:wrap;">
             <div class="number-input" style="flex-shrink:0;">
-              <button class="btn-step-5" onclick="step('shards',-5)">&#8722;5</button>
               <button class="btn-step" onclick="step('shards',-1)">&#8722;</button>
               <input type="number" id="shards" value="0" min="0" max="9999" oninput="calculate()">
               <button class="btn-step" onclick="step('shards',1)">+</button>
@@ -1240,7 +1239,6 @@
     <div class="champ-modal-row" id="cm-shards-row">
       <div class="champ-modal-label">Shards Owned</div>
       <div class="number-input">
-        <button class="btn-step-5" onclick="stepCM(-5)">&#8722;5</button>
         <button class="btn-step" onclick="stepCM(-1)">&#8722;</button>
         <input type="number" id="cm-shards" value="0" min="0" max="9999" oninput="renderCMConsumeButtons();autoSaveChamp()">
         <button class="btn-step" onclick="stepCM(1)">+</button>
