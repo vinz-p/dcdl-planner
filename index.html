@@ -457,10 +457,10 @@
   .tp-empty{text-align:center;padding:32px 16px;color:var(--text-dim);
     font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:1px;}
   .tp-teams-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;align-items:center;padding-bottom:2px;}
-  .tp-team-tab{display:flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);
-    border-radius:6px;background:rgba(255,255,255,0.02);color:var(--text-dim);cursor:pointer;
-    white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:0.5px;
-    transition:background 0.15s;}
+  .tp-team-tab{display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:6px 10px;
+    border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.02);
+    color:var(--text-dim);cursor:pointer;font-family:'Barlow Condensed',sans-serif;
+    font-size:0.85rem;letter-spacing:0.5px;transition:background 0.15s;min-width:80px;}
   .tp-team-tab.active{background:rgba(79,195,247,0.1);border-color:var(--accent);color:var(--accent);}
   .tp-team-tab:hover:not(.active){background:rgba(255,255,255,0.04);color:var(--text);}
   .tp-team-del{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;
@@ -542,10 +542,9 @@
     color:var(--text);line-height:1.1;}
   .tp-picker-meta{font-family:'Share Tech Mono',monospace;font-size:0.52rem;color:var(--text-dim);}
   .tp-picker-level{font-family:'Share Tech Mono',monospace;font-size:0.52rem;margin-left:auto;flex-shrink:0;}
-  .tp-tab-count{font-family:'Share Tech Mono',monospace;font-size:0.55rem;opacity:0.55;margin-left:3px;}
-  .tp-tab-anvils{display:block;font-family:'Share Tech Mono',monospace;font-size:0.46rem;
-    color:var(--text-dim);letter-spacing:0;margin-top:1px;white-space:nowrap;}
-  .tp-team-tab.active .tp-tab-anvils{color:var(--accent);opacity:0.85;}
+  .tp-tab-count{font-family:'Share Tech Mono',monospace;font-size:0.55rem;opacity:0.55;margin-left:3px;align-self:center;line-height:1;}
+  .tp-tab-anvils{font-family:'Share Tech Mono',monospace;font-size:0.46rem;
+    color:var(--text-dim);letter-spacing:0;white-space:nowrap;}
   /* Slot picker section */
   .tp-slot-picker{border-top:1px solid rgba(255,255,255,0.07);padding:5px 5px 7px;}
   .tp-slot-target-lbl{font-family:'Share Tech Mono',monospace;font-size:0.44rem;letter-spacing:1px;
@@ -555,8 +554,8 @@
     opacity:0.32;transition:opacity 0.1s;padding:0;min-width:0;}
   .tp-slot-color-btn:hover{opacity:0.7;}
   .tp-slot-color-btn.active{opacity:1;border-color:rgba(255,255,255,0.7);}
-  .tp-slot-stars{display:flex;gap:1px;margin-bottom:5px;flex-wrap:wrap;}
-  .tp-slot-star{cursor:pointer;font-size:0.7rem;line-height:1.1;transition:color 0.1s;}
+  .tp-slot-stars{display:flex;gap:2px;margin-bottom:5px;flex-wrap:wrap;}
+  .tp-slot-star{cursor:pointer;font-size:1rem;line-height:1.1;transition:color 0.1s;}
   .tp-slot-result{font-family:'Share Tech Mono',monospace;font-size:0.48rem;line-height:1.55;color:var(--text-dim);}
   .tp-slot-result .tp-exp{color:var(--accent);}
   .tp-slot-result .tp-wc{color:var(--legendary);}
@@ -1331,6 +1330,40 @@ const CLASS_ICONS={
   'Warrior':     _B+'class_warrior.png',
 };
 const CLASSES_ORDER=['Warrior','Guardian','Supporter','Assassin','Firepower','Intimidator','Magical'];
+
+// Synergy activation thresholds per faction (champion count needed for each tier)
+// null = no synergy data / not yet implemented in-game
+const SYNERGY_THRESHOLDS={
+  "Arkham's Most Wanted":[3,4,5],
+  'Atlanteans':null,
+  'Bat Family':[3,4,5],
+  'Birds of Prey':[3,4,5],
+  'Death Metal':[1,2,3],
+  'Energy Wielder':[3,4,5],
+  'Flash Family':null,
+  'Green Lantern Corps':null,
+  'Justice League':[3,4,5],
+  'Justice League Dark':[3,4,5],
+  'League of Assassins':[3,4,5],
+  'League of Shadows':null,
+  'Legion of Doom':[3,4,5],
+  'Metahuman':[3,4,5],
+  'Outsiders':[3,4,5],
+  'Suicide Squad':[3,4,5],
+  'Superman Family':[2],
+  'Teen Titans':[3,4,5],
+  'Weapon Master':[3,4,5],
+  'Amazons':[3,4,5],
+};
+
+// Returns the active tier index (0-based) for a faction given a champion count, or -1 if inactive
+function synergyTier(faction,count){
+  const t=SYNERGY_THRESHOLDS[faction];
+  if(!t)return -1;
+  let tier=-1;
+  for(let i=0;i<t.length;i++){if(count>=t[i])tier=i;}
+  return tier;
+}
 
 const STAR_TABLE={
   'white-0':{s:0,c:1},
@@ -2359,22 +2392,42 @@ function renderTeamTabs(){
     const isActive=i===activeTeamIdx;
     const delConfirm=tpDeleteConfirm===i;
     const count=t.entries.filter(e=>e.id).length;
+    // Anvil totals
     let tExp=0,tWC=0,tCalc=0;
     t.entries.forEach(e=>{
       if(!e.id)return;
       const r=calcTeamEntry(e);
       if(r&&!r.reached){tExp+=r.expected;tWC+=r.worstCase;tCalc++;}
     });
-    const anvilLine=tCalc>0
-      ?`<span class="tp-tab-anvils">~${_fmtAnvils(tExp)} · ${_fmtAnvils(tWC)}</span>`
-      :'';
+    // Active synergy icons for tab (all factions meeting their minimum threshold)
+    const factionCounts={};
+    t.entries.forEach(e=>{
+      if(!e.id)return;
+      const champ=CHAMPIONS.find(c=>c.id===e.id);
+      (champ&&champ.teams||[]).forEach(f=>{factionCounts[f]=(factionCounts[f]||0)+1;});
+    });
+    const activeFactions=Object.keys(factionCounts)
+      .filter(f=>synergyTier(f,factionCounts[f])>=0)
+      .sort((a,b)=>factionCounts[b]-factionCounts[a]);
+    const factionIcons=activeFactions.map(f=>{
+      const icon=TEAM_ICONS[f];
+      return icon?`<img src="${icon}" style="width:13px;height:13px;object-fit:contain;flex-shrink:0;opacity:0.85;" title="${f} (${factionCounts[f]})">`:''
+    }).join('');
     const delBtn=teams.length>1
-      ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm delete':'Remove team'}">&times;</button>`
+      ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm':'Remove team'}">&times;</button>`
+      :'';
+    const anvilLine=tCalc>0
+      ?`<div class="tp-tab-anvils">`
+        +`<span style="color:var(--accent);">${_fmtAnvils(tExp)}</span>`
+        +`<span style="opacity:0.35;"> exp · </span>`
+        +`<span style="color:var(--legendary);">${_fmtAnvils(tWC)}</span>`
+        +`<span style="opacity:0.35;"> wc</span>`
+      +`</div>`
       :'';
     return `<div class="tp-team-tab${isActive?' active':''}" onclick="switchTeam(${i})">`
-      +`<div style="display:flex;align-items:center;gap:3px;">`
-        +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" title="Double-click to rename">${t.name}</span>`
-        +(count?`<span class="tp-tab-count">${count}/5</span>`:'')
+      +`<div style="display:flex;align-items:center;gap:4px;">`
+        +(factionIcons?`<div style="display:flex;gap:2px;">${factionIcons}</div>`:'')
+        +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" style="flex:1;min-width:0;" title="Double-click to rename">${t.name}</span>`
         +delBtn
       +`</div>`
       +anvilLine
@@ -2395,12 +2448,38 @@ function renderTeamSummary(){
     const champ=CHAMPIONS.find(c=>c.id===e.id);
     (champ&&champ.teams||[]).forEach(t=>{factionCounts[t]=(factionCounts[t]||0)+1;});
   });
-  const factions=Object.keys(factionCounts).sort((a,b)=>factionCounts[b]-factionCounts[a]);
-  const factionHtml=factions.map(f=>{
+  // All factions present — active ones highlighted, inactive ones dimmed with progress
+  const allFactions=Object.keys(factionCounts).sort((a,b)=>{
+    const tA=synergyTier(a,factionCounts[a]),tB=synergyTier(b,factionCounts[b]);
+    if(tB!==tA)return tB-tA; // active first
+    return factionCounts[b]-factionCounts[a];
+  });
+  const factionHtml=allFactions.map(f=>{
+    const count=factionCounts[f];
+    const thresholds=SYNERGY_THRESHOLDS[f]||[];
+    const tier=synergyTier(f,count);
+    const isActive=tier>=0;
+    const isMaxed=isActive&&tier===thresholds.length-1;
+    const noSynergy=!thresholds.length;
     const icon=TEAM_ICONS[f]||null;
-    const img=icon?`<img src="${icon}" alt="">`:'';
-    const cnt=factionCounts[f]>1?`<span class="tp-faction-count">${factionCounts[f]}</span>`:'';
-    return `<div class="tp-faction-tag">${img}${f}${cnt}</div>`;
+    const img=icon?`<img src="${icon}" alt="" style="width:14px;height:14px;object-fit:contain;${!isActive?'opacity:0.4;':''}">`:'';
+    // Pip dots for each threshold tier
+    const pips=thresholds.map((_,ti)=>
+      `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:2px;background:${ti<=tier?(isMaxed?'var(--legendary)':'var(--accent)'):'rgba(255,255,255,0.15)'};"></span>`
+    ).join('');
+    // Progress label for inactive (e.g. "2/3")
+    const nextThreshold=!isActive&&thresholds.length?thresholds[0]:isActive&&!isMaxed?thresholds[tier+1]:null;
+    const progressLabel=!isActive&&nextThreshold
+      ?`<span style="font-size:0.55rem;opacity:0.45;margin-left:3px;font-family:'Share Tech Mono',monospace;">${count}/${nextThreshold}</span>`
+      :'';
+    const borderColor=isMaxed?'rgba(251,191,36,0.35)':isActive?'rgba(79,195,247,0.25)':'rgba(255,255,255,0.07)';
+    const bgColor=isMaxed?'rgba(251,191,36,0.07)':isActive?'rgba(79,195,247,0.08)':'rgba(255,255,255,0.02)';
+    const textOpacity=isActive?1:noSynergy?0.25:0.45;
+    return `<div class="tp-faction-tag" style="border-color:${borderColor};background:${bgColor};opacity:${textOpacity};">`
+      +img
+      +`<span>${f}</span>`
+      +(noSynergy?'':pips||progressLabel)
+      +`</div>`;
   }).join('');
   // 5 banner-style slots
   const slots=Array.from({length:5},(_,i)=>{
