@@ -3344,13 +3344,13 @@ function toggleCollTeam(team){
   if(team===null){collTeams.clear();}
   else if(collTeams.has(team)){collTeams.delete(team);}
   else{collTeams.add(team);}
-  renderCollection();
+  renderCollection('flt-team-panel');
 }
 function toggleCollClass(cls){
   if(cls===null){collClasses.clear();}
   else if(collClasses.has(cls)){collClasses.delete(cls);}
   else{collClasses.add(cls);}
-  renderCollection();
+  renderCollection('flt-class-panel');
 }
 function clearCollFilters(){collTeams.clear();collClasses.clear();renderCollection();}
 
@@ -3376,7 +3376,7 @@ function buildFilterPanel(panelId,items,activeSet,icons,toggleFn,countFn){
   const panel=document.getElementById(panelId);
   if(!panel)return;
   const clearDis=activeSet.size===0?' flt-item-disabled':'';
-  let html=`<div class="flt-item flt-item-clear${clearDis}" onclick="${toggleFn}(null)"><span class="flt-item-label">Clear selection</span></div>`
+  let html=`<div class="flt-item flt-item-clear${clearDis}" onclick="event.stopPropagation();${toggleFn}(null)"><span class="flt-item-label">Clear selection</span></div>`
     +`<div class="flt-divider"></div>`;
   items.forEach(item=>{
     const n=countFn(item);
@@ -3384,7 +3384,7 @@ function buildFilterPanel(panelId,items,activeSet,icons,toggleFn,countFn){
     const sel=activeSet.has(item)?' selected':'';
     const icon=icons[item]||null;
     const iconHtml=_fltIcon(icon,item,'flt-item-icon');
-    html+=`<div class="flt-item${sel}" onclick="${toggleFn}('${_escQ(item)}')">`
+    html+=`<div class="flt-item${sel}" onclick="event.stopPropagation();${toggleFn}('${_escQ(item)}')">`
       +iconHtml
       +`<span class="flt-item-label">${item}</span>`
       +`<span class="flt-item-count">${n}</span>`
@@ -3441,8 +3441,9 @@ function champProgressPct(id){
   return Math.min(100,Math.round(((consumed+shards)/MAX_SHARD_TOTAL)*100));
 }
 
-function renderCollection(){
+function renderCollection(keepOpenPanelId){
   buildFilterDropdowns();
+  if(keepOpenPanelId){const p=document.getElementById(keepOpenPanelId);if(p)p.classList.add('open');}
 
   const search=(document.getElementById('coll-search').value||'').toLowerCase().trim();
   let list=CHAMPIONS.filter(c=>{
