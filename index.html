@@ -2448,24 +2448,37 @@ function renderTeamSummary(){
     const champ=CHAMPIONS.find(c=>c.id===e.id);
     (champ&&champ.teams||[]).forEach(t=>{factionCounts[t]=(factionCounts[t]||0)+1;});
   });
-  // Only show factions with an active synergy (threshold met)
-  const activeFactions=Object.keys(factionCounts)
-    .filter(f=>synergyTier(f,factionCounts[f])>=0)
-    .sort((a,b)=>factionCounts[b]-factionCounts[a]);
-  const factionHtml=activeFactions.map(f=>{
+  // All factions present — active ones highlighted, inactive ones dimmed with progress
+  const allFactions=Object.keys(factionCounts).sort((a,b)=>{
+    const tA=synergyTier(a,factionCounts[a]),tB=synergyTier(b,factionCounts[b]);
+    if(tB!==tA)return tB-tA; // active first
+    return factionCounts[b]-factionCounts[a];
+  });
+  const factionHtml=allFactions.map(f=>{
     const count=factionCounts[f];
     const thresholds=SYNERGY_THRESHOLDS[f]||[];
-    const tier=synergyTier(f,count); // 0-based active tier
-    const maxTier=thresholds.length-1;
-    const isMaxed=tier===maxTier;
+    const tier=synergyTier(f,count);
+    const isActive=tier>=0;
+    const isMaxed=isActive&&tier===thresholds.length-1;
+    const noSynergy=!thresholds.length;
     const icon=TEAM_ICONS[f]||null;
-    const img=icon?`<img src="${icon}" alt="" style="width:14px;height:14px;object-fit:contain;">`:'';
-    // Tier pips
+    const img=icon?`<img src="${icon}" alt="" style="width:14px;height:14px;object-fit:contain;${!isActive?'opacity:0.4;':''}">`:'';
+    // Pip dots for each threshold tier
     const pips=thresholds.map((_,ti)=>
       `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:2px;background:${ti<=tier?(isMaxed?'var(--legendary)':'var(--accent)'):'rgba(255,255,255,0.15)'};"></span>`
     ).join('');
-    return `<div class="tp-faction-tag" style="border-color:${isMaxed?'rgba(251,191,36,0.35)':'rgba(79,195,247,0.25)'};background:${isMaxed?'rgba(251,191,36,0.07)':'rgba(79,195,247,0.08)'};">`
-      +img+`<span>${f}</span>`+pips
+    // Progress label for inactive (e.g. "2/3")
+    const nextThreshold=!isActive&&thresholds.length?thresholds[0]:isActive&&!isMaxed?thresholds[tier+1]:null;
+    const progressLabel=!isActive&&nextThreshold
+      ?`<span style="font-size:0.55rem;opacity:0.45;margin-left:3px;font-family:'Share Tech Mono',monospace;">${count}/${nextThreshold}</span>`
+      :'';
+    const borderColor=isMaxed?'rgba(251,191,36,0.35)':isActive?'rgba(79,195,247,0.25)':'rgba(255,255,255,0.07)';
+    const bgColor=isMaxed?'rgba(251,191,36,0.07)':isActive?'rgba(79,195,247,0.08)':'rgba(255,255,255,0.02)';
+    const textOpacity=isActive?1:noSynergy?0.25:0.45;
+    return `<div class="tp-faction-tag" style="border-color:${borderColor};background:${bgColor};opacity:${textOpacity};">`
+      +img
+      +`<span>${f}</span>`
+      +(noSynergy?'':pips||progressLabel)
       +`</div>`;
   }).join('');
   // 5 banner-style slots
