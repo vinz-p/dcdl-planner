@@ -53,9 +53,13 @@
   .number-input{display:flex;align-items:center;gap:8px;}
   .btn-step{width:32px;height:32px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:1.2rem;cursor:pointer;border-radius:4px;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
   .btn-step:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .btn-step-5{width:32px;height:32px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text-dim);font-size:0.7rem;font-family:'Share Tech Mono',monospace;letter-spacing:0;cursor:pointer;border-radius:4px;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+  .btn-step-5:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
   input[type=number]{width:70px;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:1.1rem;text-align:center;padding:6px;border-radius:4px;outline:none;}
   input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(0,212,255,0.2);}
-  input[type=number]::-webkit-inner-spin-button{display:none;}
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+  input[type=number]{-moz-appearance:textfield;}
   select{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;padding:6px 10px;border-radius:4px;outline:none;}
   .scenario-tabs{display:flex;gap:6px;margin-bottom:16px;}
   .tab{flex:1;padding:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:1px;cursor:pointer;border-radius:6px;transition:all 0.2s;text-transform:uppercase;}
@@ -920,9 +924,11 @@
           <div class="settings-col-label">Shards Owned</div>
           <div style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;flex-wrap:wrap;">
             <div class="number-input" style="flex-shrink:0;">
+              <button class="btn-step-5" onclick="step('shards',-5)">&#8722;5</button>
               <button class="btn-step" onclick="step('shards',-1)">&#8722;</button>
               <input type="number" id="shards" value="0" min="0" max="9999" oninput="calculate()">
               <button class="btn-step" onclick="step('shards',1)">+</button>
+              <button class="btn-step-5" onclick="step('shards',5)">+5</button>
             </div>
             <div id="consume-btns" style="flex:1;display:none;flex-direction:column;gap:5px;min-width:0;"></div>
           </div>
@@ -1234,9 +1240,11 @@
     <div class="champ-modal-row" id="cm-shards-row">
       <div class="champ-modal-label">Shards Owned</div>
       <div class="number-input">
+        <button class="btn-step-5" onclick="stepCM(-5)">&#8722;5</button>
         <button class="btn-step" onclick="stepCM(-1)">&#8722;</button>
         <input type="number" id="cm-shards" value="0" min="0" max="9999" oninput="renderCMConsumeButtons();autoSaveChamp()">
         <button class="btn-step" onclick="stepCM(1)">+</button>
+        <button class="btn-step-5" onclick="stepCM(5)">+5</button>
       </div>
     </div>
     <div class="champ-modal-actions">
