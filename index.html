@@ -1331,6 +1331,40 @@ const CLASS_ICONS={
 };
 const CLASSES_ORDER=['Warrior','Guardian','Supporter','Assassin','Firepower','Intimidator','Magical'];
 
+// Synergy activation thresholds per faction (champion count needed for each tier)
+// null = no synergy data / not yet implemented in-game
+const SYNERGY_THRESHOLDS={
+  "Arkham's Most Wanted":[3,4,5],
+  'Atlanteans':null,
+  'Bat Family':[3,4,5],
+  'Birds of Prey':[3,4,5],
+  'Death Metal':[1,2,3],
+  'Energy Wielder':[3,4,5],
+  'Flash Family':null,
+  'Green Lantern Corps':null,
+  'Justice League':[3,4,5],
+  'Justice League Dark':[3,4,5],
+  'League of Assassins':[3,4,5],
+  'League of Shadows':null,
+  'Legion of Doom':[3,4,5],
+  'Metahuman':[3,4,5],
+  'Outsiders':[3,4,5],
+  'Suicide Squad':[3,4,5],
+  'Superman Family':[2],
+  'Teen Titans':[3,4,5],
+  'Weapon Master':[3,4,5],
+  'Amazons':[3,4,5],
+};
+
+// Returns the active tier index (0-based) for a faction given a champion count, or -1 if inactive
+function synergyTier(faction,count){
+  const t=SYNERGY_THRESHOLDS[faction];
+  if(!t)return -1;
+  let tier=-1;
+  for(let i=0;i<t.length;i++){if(count>=t[i])tier=i;}
+  return tier;
+}
+
 const STAR_TABLE={
   'white-0':{s:0,c:1},
   'white-1':{s:2,c:1},'white-2':{s:5,c:1},'white-3':{s:10,c:1},'white-4':{s:20,c:1},'white-5':{s:40,c:2},
@@ -2365,17 +2399,19 @@ function renderTeamTabs(){
       const r=calcTeamEntry(e);
       if(r&&!r.reached){tExp+=r.expected;tWC+=r.worstCase;tCalc++;}
     });
-    // Top 2 faction icons (most shared first)
+    // Active synergy icons for tab (all factions meeting their minimum threshold)
     const factionCounts={};
     t.entries.forEach(e=>{
       if(!e.id)return;
       const champ=CHAMPIONS.find(c=>c.id===e.id);
       (champ&&champ.teams||[]).forEach(f=>{factionCounts[f]=(factionCounts[f]||0)+1;});
     });
-    const topFactions=Object.keys(factionCounts).sort((a,b)=>factionCounts[b]-factionCounts[a]).slice(0,2);
-    const factionIcons=topFactions.map(f=>{
+    const activeFactions=Object.keys(factionCounts)
+      .filter(f=>synergyTier(f,factionCounts[f])>=0)
+      .sort((a,b)=>factionCounts[b]-factionCounts[a]);
+    const factionIcons=activeFactions.map(f=>{
       const icon=TEAM_ICONS[f];
-      return icon?`<img src="${icon}" style="width:13px;height:13px;object-fit:contain;flex-shrink:0;opacity:0.75;" title="${f}">`:''
+      return icon?`<img src="${icon}" style="width:13px;height:13px;object-fit:contain;flex-shrink:0;opacity:0.85;" title="${f} (${factionCounts[f]})">`:''
     }).join('');
     const delBtn=teams.length>1
       ?`<button class="tp-team-del${delConfirm?' confirm':''}" onclick="deleteTeam(${i},event)" title="${delConfirm?'Click again to confirm':'Remove team'}">&times;</button>`
@@ -2392,7 +2428,6 @@ function renderTeamTabs(){
       +`<div style="display:flex;align-items:center;gap:4px;">`
         +(factionIcons?`<div style="display:flex;gap:2px;">${factionIcons}</div>`:'')
         +`<span id="tp-tab-name-${i}" ondblclick="startTpRename(${i},event)" style="flex:1;min-width:0;" title="Double-click to rename">${t.name}</span>`
-        +(count?`<span class="tp-tab-count">${count}/5</span>`:'')
         +delBtn
       +`</div>`
       +anvilLine
@@ -2413,12 +2448,25 @@ function renderTeamSummary(){
     const champ=CHAMPIONS.find(c=>c.id===e.id);
     (champ&&champ.teams||[]).forEach(t=>{factionCounts[t]=(factionCounts[t]||0)+1;});
   });
-  const factions=Object.keys(factionCounts).sort((a,b)=>factionCounts[b]-factionCounts[a]);
-  const factionHtml=factions.map(f=>{
+  // Only show factions with an active synergy (threshold met)
+  const activeFactions=Object.keys(factionCounts)
+    .filter(f=>synergyTier(f,factionCounts[f])>=0)
+    .sort((a,b)=>factionCounts[b]-factionCounts[a]);
+  const factionHtml=activeFactions.map(f=>{
+    const count=factionCounts[f];
+    const thresholds=SYNERGY_THRESHOLDS[f]||[];
+    const tier=synergyTier(f,count); // 0-based active tier
+    const maxTier=thresholds.length-1;
+    const isMaxed=tier===maxTier;
     const icon=TEAM_ICONS[f]||null;
-    const img=icon?`<img src="${icon}" alt="">`:'';
-    const cnt=factionCounts[f]>1?`<span class="tp-faction-count">${factionCounts[f]}</span>`:'';
-    return `<div class="tp-faction-tag">${img}${f}${cnt}</div>`;
+    const img=icon?`<img src="${icon}" alt="" style="width:14px;height:14px;object-fit:contain;">`:'';
+    // Tier pips
+    const pips=thresholds.map((_,ti)=>
+      `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:2px;background:${ti<=tier?(isMaxed?'var(--legendary)':'var(--accent)'):'rgba(255,255,255,0.15)'};"></span>`
+    ).join('');
+    return `<div class="tp-faction-tag" style="border-color:${isMaxed?'rgba(251,191,36,0.35)':'rgba(79,195,247,0.25)'};background:${isMaxed?'rgba(251,191,36,0.07)':'rgba(79,195,247,0.08)'};">`
+      +img+`<span>${f}</span>`+pips
+      +`</div>`;
   }).join('');
   // 5 banner-style slots
   const slots=Array.from({length:5},(_,i)=>{
