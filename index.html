@@ -1191,9 +1191,15 @@
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <div class="main-section" id="section-collection">
     <div class="panel" style="padding-bottom:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
         <div class="panel-title" style="margin-bottom:0;">CHAMPION COLLECTION</div>
-        <div id="coll-stats" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div id="coll-stats" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;"></div>
+          <div style="width:1px;height:16px;background:var(--border);flex-shrink:0;"></div>
+          <button class="danger-btn" onclick="exportAllData()" style="border-color:var(--accent-dim);color:var(--accent);">Export JSON</button>
+          <button class="danger-btn" onclick="document.getElementById('import-file-input').click()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);">Import JSON</button>
+          <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(event)">
+        </div>
       </div>
       <!-- Row 1: Search | Paywall | Rarity filters (checkbox — multi-select) -->
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
@@ -1239,12 +1245,6 @@
       <!-- Team/class summary header (shown when exactly 1 team active) -->
       <div id="team-filter-header" style="display:none;margin-bottom:10px;"></div>
       <div class="coll-grid" id="coll-grid"></div>
-      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Data:</span>
-        <button class="danger-btn" onclick="exportAllData()" style="border-color:var(--accent-dim);color:var(--accent);">Export JSON</button>
-        <button class="danger-btn" onclick="document.getElementById('import-file-input').click()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);">Import JSON</button>
-        <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(event)">
-      </div>
     </div>
   </div>
 
