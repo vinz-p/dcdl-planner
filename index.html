@@ -3343,6 +3343,21 @@ function calculate(){
     const tabsEl=document.querySelector('.scenario-tabs');if(tabsEl)tabsEl.style.display='none';
     return;
   }
+  // Paywall champions cannot be obtained via anvil pulls — show notice and stop
+  const _champMeta=CHAMPIONS.find(c=>c.id===champId);
+  if(_champMeta&&_champMeta.paywall){
+    const panel=document.getElementById('progress-panel');if(panel)panel.style.display='none';
+    const bannerEl=document.getElementById('goal-reached-banner');if(bannerEl){bannerEl.style.display='none';bannerEl.innerHTML='';}
+    const tabsEl=document.querySelector('.scenario-tabs');if(tabsEl)tabsEl.style.display='none';
+    const resultsEl=document.getElementById('results');
+    if(resultsEl)resultsEl.innerHTML=`
+      <div style="margin-top:18px;background:rgba(240,165,0,0.07);border:1px solid rgba(240,165,0,0.35);border-radius:10px;padding:20px 24px;text-align:center;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--legendary);letter-spacing:2px;margin-bottom:8px;">⚠ PAYWALL CHAMPION</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;color:var(--text);margin-bottom:6px;">${_champMeta.name} cannot be obtained through Anvil pulls.</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);">No anvil estimation available for this champion.</div>
+      </div>`;
+    return;
+  }
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value);
   const oc=document.getElementById('ownedColor').value;
