@@ -1636,13 +1636,17 @@ function submitBatch(){
   // Total auto-earned shards for display in history (dupe shards only, not bonus)
   const autoEarned=limitedEarned+hlResults.reduce((s,r)=>s+r.earned,0)+reResults.reduce((s,r)=>s+r.earned,0);
 
+  const _bs=bannerStates[activeBannerIdx]||{};
   history.unshift({
     id:Date.now(),batch:batchSize,
+    bannerId:activeBannerIdx,
+    bannerName:_bs.name||`Banner ${activeBannerIdx+1}`,
+    limitedId,limitedName,
     desc:parts.join(', '),
     shards:bonusShards,        // manual bonus shards
     bonusName:limitedName,     // champion these bonus shards belong to
     autoShards:autoEarned,     // auto-calculated dupe shards
-    counts:{limited:counts.limited,highlighted:counts.highlighted,regular:counts.regular,legendary:counts.legendary},
+    counts:{limited:counts.limited,highlighted:counts.highlighted,regular:counts.regular,legendary:counts.legendary,epic:ep},
     ts:new Date().toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
   });
 
@@ -1741,7 +1745,7 @@ function copyShareSummary(){
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value)||1;
   const shards=parseInt(document.getElementById('shards').value)||0;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const tEntry=STAR_TABLE[tc+'-'+ts];
   const oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
@@ -1810,34 +1814,34 @@ function buildStarPicker(containerId,hiddenId,defaultVal,colorVal){
   const container=document.getElementById(containerId);
   container.innerHTML='';
   const isNoneColor=colorVal==='none';
-  const minStar=colorVal==='white'?0:1;
+  const minStar=1;
   for(let i=minStar;i<=5;i++){
     const s=document.createElement('span');
-    const isActive=!isNoneColor&&(i<=defaultVal&&i>0||i===0&&defaultVal===0);
+    const isActive=!isNoneColor&&i<=Math.max(1,defaultVal);
     s.className='sp-star'+(isActive?' active':'');
-    s.textContent=i===0?'○':'★';
-    s.style.color=i===0?'rgba(200,200,200,0.5)':STAR_COLORS[colorVal]||'#eab308';
+    s.textContent='★';
+    s.style.color=STAR_COLORS[colorVal]||'#eab308';
     s.dataset.val=i;
     s.onclick=()=>setStar(hiddenId,containerId,i);
-    s.onmouseenter=()=>hoverStar(containerId,i,minStar);
-    s.onmouseleave=()=>unhoverStar(containerId,hiddenId,minStar);
+    s.onmouseenter=()=>hoverStar(containerId,i);
+    s.onmouseleave=()=>unhoverStar(containerId,hiddenId);
     container.appendChild(s);
   }
 }
 
-function hoverStar(cId,val,minStar=1){
+function hoverStar(cId,val){
   document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
-    const starVal=idx+(minStar);
-    const lit=starVal>0&&starVal<=val;
+    const starVal=idx+1;
+    const lit=starVal<=val;
     s.style.opacity=lit?'1':'0.25';
     s.style.filter=lit?'none':'grayscale(1)';
   });
 }
-function unhoverStar(cId,hId,minStar=1){
-  const cur=parseInt(document.getElementById(hId).value)||0;
+function unhoverStar(cId,hId){
+  const cur=Math.max(1,parseInt(document.getElementById(hId).value)||1);
   document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
-    const starVal=idx+minStar;
-    const lit=starVal>0&&starVal<=cur;
+    const starVal=idx+1;
+    const lit=starVal<=cur;
     s.style.opacity=lit?'1':'0.25';
     s.style.filter=lit?'none':'grayscale(1)';
   });
@@ -1862,11 +1866,9 @@ const _origSetColor_base=function(hiddenId,containerId,val){
       const curStar=parseInt(document.getElementById(starHiddenId).value);
       let newStar;
       if(prevColor==='none'){
-        // Picking a color for the first time — default to 0★ for white, 1★ for others
-        newStar=val==='white'?0:1;
+        newStar=1;
       } else {
-        // Already had a color — keep current star, just prevent 0★ on non-white
-        newStar=(val!=='white'&&curStar===0)?1:curStar;
+        newStar=Math.max(1,curStar);
       }
       document.getElementById(starHiddenId).value=newStar;
       buildStarPicker(starPickerId,starHiddenId,newStar,val);
@@ -2105,7 +2107,7 @@ function updateProgressBar(earned,target){
   const os=parseInt((document.getElementById('ownedStar')||{}).value)||0;
   const tc=(document.getElementById('targetColor')||{}).value||'red';
   const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
   const toColor=tierColor(tc);
@@ -2503,40 +2505,77 @@ function setHistoryView(v,btn){
   if(sumEl)sumEl.style.display=v==='summary'?'':'none';
   if(v==='summary')renderHistorySummary();
 }
+let summaryGroupBy='banner'; // 'banner' | 'limited'
 function renderHistorySummary(){
   const el=document.getElementById('history-summary');
   if(!el)return;
   if(!history.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
+
+  // Build aggregated rows
   const map={};
   history.forEach(e=>{
-    const key=e.bonusName||'None';
-    if(!map[key])map[key]={name:key,bonusShards:0,entries:0,pulls:0};
-    map[key].bonusShards+=e.shards||0;
-    map[key].entries++;
-    map[key].pulls+=e.batch||0;
+    const c=e.counts||{};
+    const ep=c.epic!=null?c.epic:Math.max(0,(e.batch||0)-(c.limited||0)-(c.highlighted||0)-(c.regular||0)-(c.legendary||0));
+    const key=summaryGroupBy==='banner'?(e.bannerName||`Banner ${(e.bannerId??0)+1}`):(e.limitedName||e.bonusName||'Unknown');
+    if(!map[key])map[key]={name:key,pulls:0,entries:0,limited:0,highlighted:0,regular:0,legendary:0,epic:0,bonusShards:0,autoShards:0};
+    const r=map[key];
+    r.pulls+=e.batch||0;
+    r.entries++;
+    r.limited+=c.limited||0;
+    r.highlighted+=c.highlighted||0;
+    r.regular+=c.regular||0;
+    r.legendary+=c.legendary||0;
+    r.epic+=ep;
+    r.bonusShards+=e.shards||0;
+    r.autoShards+=e.autoShards||0;
   });
-  const rows=Object.values(map).sort((a,b)=>b.bonusShards-a.bonusShards);
-  el.innerHTML=`<table class="hist-sum-table">
+  const rows=Object.values(map).sort((a,b)=>b.pulls-a.pulls);
+
+  const groupLabel=summaryGroupBy==='banner'?'Banner':'Limited Champion';
+  const byBannerActive=summaryGroupBy==='banner';
+  el.innerHTML=
+    `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">GROUP BY:</span>
+      <button class="coll-sort${byBannerActive?' active':''}" onclick="summaryGroupBy='banner';renderHistorySummary()">Banner</button>
+      <button class="coll-sort${!byBannerActive?' active':''}" onclick="summaryGroupBy='limited';renderHistorySummary()">Limited Champion</button>
+    </div>`+
+    `<div style="overflow-x:auto;"><table class="hist-sum-table">
     <thead><tr>
-      <th>Champion</th><th>Pulls</th><th>Entries</th><th>Bonus Shards</th>
+      <th>${groupLabel}</th>
+      <th title="Total pulls logged">Pulls</th>
+      <th title="Limited champion copies">Lim</th>
+      <th title="Highlighted mythic copies">HL</th>
+      <th title="Regular mythic copies">Reg</th>
+      <th title="Legendary pulls">Leg</th>
+      <th title="Epic pulls">Epic</th>
+      <th title="Manually entered bonus shards">+Shards</th>
+      <th title="Auto-earned dupe shards">+Dupes✦</th>
     </tr></thead>
     <tbody>${rows.map(r=>`<tr>
-      <td>${r.name}</td>
+      <td style="font-weight:600;">${r.name}</td>
       <td style="color:var(--text);">${r.pulls}</td>
-      <td style="color:var(--text-dim);">${r.entries}</td>
+      <td style="color:var(--mythic);">${r.limited||'—'}</td>
+      <td style="color:var(--mythic);">${r.highlighted||'—'}</td>
+      <td style="color:var(--mythic);">${r.regular||'—'}</td>
+      <td style="color:var(--legendary);">${r.legendary||'—'}</td>
+      <td style="color:#9b8ee0;">${r.epic||'—'}</td>
       <td style="color:var(--green);">${r.bonusShards>0?'+'+r.bonusShards:'—'}</td>
+      <td style="color:var(--green);">${r.autoShards>0?'+'+r.autoShards:'—'}</td>
     </tr>`).join('')}</tbody>
-  </table>`;
+  </table></div>`;
 }
 function exportHistoryCSV(){
   if(!history.length){alert('No history to export.');return;}
-  const hdr=['Date','Pulls','Limited','Highlighted','Regular','Legendary','BonusChamp','BonusShards','AutoShards'];
-  const rows=history.map(e=>[
-    e.ts||'',e.batch||0,
-    (e.counts||{}).limited||0,(e.counts||{}).highlighted||0,
-    (e.counts||{}).regular||0,(e.counts||{}).legendary||0,
-    e.bonusName||'',e.shards||0,e.autoShards||0,
-  ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const hdr=['Date','Banner','LimitedChamp','Pulls','Limited','Highlighted','Regular','Legendary','Epic','BonusShards','AutoShards'];
+  const rows=history.map(e=>{
+    const c=e.counts||{};
+    const ep=c.epic!=null?c.epic:Math.max(0,(e.batch||0)-(c.limited||0)-(c.highlighted||0)-(c.regular||0)-(c.legendary||0));
+    return[
+      e.ts||'',e.bannerName||'',e.limitedName||e.bonusName||'',e.batch||0,
+      c.limited||0,c.highlighted||0,c.regular||0,c.legendary||0,ep,
+      e.shards||0,e.autoShards||0,
+    ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
   const csv=[hdr.join(','),...rows].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
@@ -3230,7 +3269,7 @@ function calculate(){
       bannerEl.innerHTML='<div class="panel" style="border-color:var(--green);">'+
         '<div style="text-align:center;">'+
         '<div style="font-family:Oswald,sans-serif;font-size:2rem;color:var(--green);margin-bottom:6px;">GOAL REACHED!</div>'+
-        '<div style="font-size:0.88rem;color:var(--text-dim)">You already have enough shards to reach <span style="color:'+tierColor(tc)+'">'+CLABEL[tc]+' '+STARS[ts-1]+'</span>.</div>'+
+        '<div style="font-size:0.88rem;color:var(--text-dim)">You already have enough shards to reach <span style="color:'+tierColor(tc)+'">'+CLABEL[tc]+' '+STARS[ts]+'</span>.</div>'+
         nextHtml+'</div></div>';
     }
     if(tabsEl)tabsEl.style.display='none';
@@ -3415,8 +3454,7 @@ function champLevelStr(id){
   const d=champData[id];
   if(!d||!d.color||d.color==='none')return'Not owned';
   const s=parseInt(String(d.star).trim());
-  if(isNaN(s))return'0★';
-  if(s===0)return'0★';
+  if(isNaN(s)||s===0)return STAR_LABELS[1];
   const label=TIER_LABEL_MAP[d.color];
   if(!label)return STAR_LABELS[s]||s+'★';
   return label+' '+(STAR_LABELS[s]||s+'★');
@@ -3536,7 +3574,7 @@ function updatePlannerCurrentLevel(){
     el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>'+editBtn;
     return;
   }
-  const lvlStr=TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]);
+  const lvlStr=TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]);
   el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`+editBtn;
 }
 
@@ -4109,13 +4147,13 @@ function _refreshModalRarityHeader(displayRarity){
     (teamsStr?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-top:3px;line-height:1.5;">${teamsStr}</div>`:'');
 }
 function ascendToMythic(){
-  if(!confirm('Ascend to Mythic?\n\nThis resets their level to 0 stars and clears shards — your Legendary progress will be removed.'))return;
+  if(!confirm('Ascend to Mythic?\n\nThis resets their level to White 1★ and clears shards — your Legendary progress will be removed.'))return;
   document.getElementById('cm-rarity-select').value='Mythic';
   document.getElementById('cm-color').value='white';
-  document.getElementById('cm-star').value='0';
+  document.getElementById('cm-star').value='1';
   document.getElementById('cm-shards').value='0';
   buildColorPicker('cmColorPicker','cm-color',true,'white');
-  buildStarPicker('cmStarPicker','cm-star',0,'white');
+  buildStarPicker('cmStarPicker','cm-star',1,'white');
   const sp=document.getElementById('cmStarPicker');
   if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
   updateDualRarityUI();_refreshModalRarityHeader('Mythic');updateCMLevelLabel();autoSaveChamp();
