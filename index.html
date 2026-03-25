@@ -1279,10 +1279,9 @@
     <div id="cm-paywall-badge" style="display:none;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--legendary);letter-spacing:1px;margin-bottom:8px;">⚠ PAYWALL — not obtainable via Anvil pulls</div>
     <!-- CONSUME BUTTONS -->
     <div id="cm-consume-btns" style="display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
-    <div class="champ-modal-row" id="cm-rarity-row" style="display:none;flex-direction:column;gap:8px;">
-      <div class="champ-modal-label">Ascension <small style="font-size:0.65rem;color:var(--text-dim);">Legendary Red 5★ → Mythic</small></div>
+    <div id="cm-rarity-row" style="display:none;padding:4px 0;">
       <input type="hidden" id="cm-rarity-select" value="Legendary">
-      <div id="cm-ascension-ui"></div>
+      <div id="cm-ascension-ui" style="text-align:left;"></div>
     </div>
     <div class="champ-modal-row" id="cm-shards-row">
       <div class="champ-modal-label">Shards Owned</div>
@@ -3877,8 +3876,9 @@ function renderCollection(keepOpenPanelId){
     if(s==='maxed'){badge='<div class="cc-badge maxed-b">MAX</div>';cardClass+=' maxed';}
     else if(s==='owned'){badge='<div class="cc-badge owned-b">OWNED</div>';cardClass+=' owned';}
 
-    const rarityCol=RARITY_COLOR[c.rarity]||'var(--text-dim)';
-    const rarityStrip=RARITY_STRIP[c.rarity]||'linear-gradient(90deg,var(--border),var(--border))';
+    const effectiveRarity=(c.dualRarity&&d.rarity)?d.rarity:c.rarity;
+    const rarityCol=RARITY_COLOR[effectiveRarity]||'var(--text-dim)';
+    const rarityStrip=RARITY_STRIP[effectiveRarity]||'linear-gradient(90deg,var(--border),var(--border))';
 
     // Progress bar — full 1000-shard width, colored by tier
     const key=d.color&&d.color!=='none'?(d.color+'-'+(parseInt(d.star)||0)):null;
@@ -3933,10 +3933,10 @@ function renderCollection(keepOpenPanelId){
       'Legendary':'0 4px 16px rgba(240,165,0,0.18)',
       'Iconic':'0 4px 16px rgba(192,132,252,0.18)',
     };
-    const baseBorder=s==='not-owned'?'rgba(255,255,255,0.07)':(RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.12)');
-    const baseGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none'):'none';
-    const hoverBorder=RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.4)';
-    const hoverGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none').replace('0.28','0.45').replace('0.18','0.35'):'0 4px 14px rgba(79,195,247,0.15)';
+    const baseBorder=s==='not-owned'?'rgba(255,255,255,0.07)':(RARITY_BORDER[effectiveRarity]||'rgba(255,255,255,0.12)');
+    const baseGlow=s!=='not-owned'?(RARITY_GLOW[effectiveRarity]||'none'):'none';
+    const hoverBorder=RARITY_BORDER[effectiveRarity]||'rgba(255,255,255,0.4)';
+    const hoverGlow=s!=='not-owned'?(RARITY_GLOW[effectiveRarity]||'none').replace('0.28','0.45').replace('0.18','0.35'):'0 4px 14px rgba(79,195,247,0.15)';
 
     return `<div class="${cardClass}" style="border-color:${baseBorder};box-shadow:${baseGlow};"
       onmouseenter="this.style.outline='1.5px solid ${hoverBorder}';this.style.outlineOffset='-1px';this.style.boxShadow='${hoverGlow}';this.style.transform='translateY(-3px)'"
@@ -3947,7 +3947,7 @@ function renderCollection(keepOpenPanelId){
       <div class="cc-info">
         <div class="cc-name">${c.name}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">
-          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${c.rarity||''}</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${effectiveRarity||''}</div>
           ${CLASS_ICONS[c.class]?`<img src="${CLASS_ICONS[c.class]}" title="${c.class}" style="width:12px;height:12px;object-fit:contain;opacity:${s==='not-owned'?'0.3':'0.7'};flex-shrink:0;">`:''}
         </div>
         <div class="cc-status" style="margin-top:3px;display:flex;justify-content:space-between;align-items:baseline;gap:2px;">
@@ -3991,6 +3991,7 @@ function openChampModal(id){
       const saved = (champData[id]||{}).rarity||'Legendary';
       raritySelect.value = saved;
       updateDualRarityUI();
+      _refreshModalRarityHeader(saved);
     } else {
       rarityRow.style.display='none';
     }
