@@ -1741,7 +1741,7 @@ function copyShareSummary(){
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value)||1;
   const shards=parseInt(document.getElementById('shards').value)||0;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const tEntry=STAR_TABLE[tc+'-'+ts];
   const oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
@@ -1810,34 +1810,34 @@ function buildStarPicker(containerId,hiddenId,defaultVal,colorVal){
   const container=document.getElementById(containerId);
   container.innerHTML='';
   const isNoneColor=colorVal==='none';
-  const minStar=colorVal==='white'?0:1;
+  const minStar=1;
   for(let i=minStar;i<=5;i++){
     const s=document.createElement('span');
-    const isActive=!isNoneColor&&(i<=defaultVal&&i>0||i===0&&defaultVal===0);
+    const isActive=!isNoneColor&&i<=Math.max(1,defaultVal);
     s.className='sp-star'+(isActive?' active':'');
-    s.textContent=i===0?'○':'★';
-    s.style.color=i===0?'rgba(200,200,200,0.5)':STAR_COLORS[colorVal]||'#eab308';
+    s.textContent='★';
+    s.style.color=STAR_COLORS[colorVal]||'#eab308';
     s.dataset.val=i;
     s.onclick=()=>setStar(hiddenId,containerId,i);
-    s.onmouseenter=()=>hoverStar(containerId,i,minStar);
-    s.onmouseleave=()=>unhoverStar(containerId,hiddenId,minStar);
+    s.onmouseenter=()=>hoverStar(containerId,i);
+    s.onmouseleave=()=>unhoverStar(containerId,hiddenId);
     container.appendChild(s);
   }
 }
 
-function hoverStar(cId,val,minStar=1){
+function hoverStar(cId,val){
   document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
-    const starVal=idx+(minStar);
-    const lit=starVal>0&&starVal<=val;
+    const starVal=idx+1;
+    const lit=starVal<=val;
     s.style.opacity=lit?'1':'0.25';
     s.style.filter=lit?'none':'grayscale(1)';
   });
 }
-function unhoverStar(cId,hId,minStar=1){
-  const cur=parseInt(document.getElementById(hId).value)||0;
+function unhoverStar(cId,hId){
+  const cur=Math.max(1,parseInt(document.getElementById(hId).value)||1);
   document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
-    const starVal=idx+minStar;
-    const lit=starVal>0&&starVal<=cur;
+    const starVal=idx+1;
+    const lit=starVal<=cur;
     s.style.opacity=lit?'1':'0.25';
     s.style.filter=lit?'none':'grayscale(1)';
   });
@@ -1862,11 +1862,9 @@ const _origSetColor_base=function(hiddenId,containerId,val){
       const curStar=parseInt(document.getElementById(starHiddenId).value);
       let newStar;
       if(prevColor==='none'){
-        // Picking a color for the first time — default to 0★ for white, 1★ for others
-        newStar=val==='white'?0:1;
+        newStar=1;
       } else {
-        // Already had a color — keep current star, just prevent 0★ on non-white
-        newStar=(val!=='white'&&curStar===0)?1:curStar;
+        newStar=Math.max(1,curStar);
       }
       document.getElementById(starHiddenId).value=newStar;
       buildStarPicker(starPickerId,starHiddenId,newStar,val);
@@ -2105,7 +2103,7 @@ function updateProgressBar(earned,target){
   const os=parseInt((document.getElementById('ownedStar')||{}).value)||0;
   const tc=(document.getElementById('targetColor')||{}).value||'red';
   const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
   const toColor=tierColor(tc);
@@ -3230,7 +3228,7 @@ function calculate(){
       bannerEl.innerHTML='<div class="panel" style="border-color:var(--green);">'+
         '<div style="text-align:center;">'+
         '<div style="font-family:Oswald,sans-serif;font-size:2rem;color:var(--green);margin-bottom:6px;">GOAL REACHED!</div>'+
-        '<div style="font-size:0.88rem;color:var(--text-dim)">You already have enough shards to reach <span style="color:'+tierColor(tc)+'">'+CLABEL[tc]+' '+STARS[ts-1]+'</span>.</div>'+
+        '<div style="font-size:0.88rem;color:var(--text-dim)">You already have enough shards to reach <span style="color:'+tierColor(tc)+'">'+CLABEL[tc]+' '+STARS[ts]+'</span>.</div>'+
         nextHtml+'</div></div>';
     }
     if(tabsEl)tabsEl.style.display='none';
@@ -3415,8 +3413,7 @@ function champLevelStr(id){
   const d=champData[id];
   if(!d||!d.color||d.color==='none')return'Not owned';
   const s=parseInt(String(d.star).trim());
-  if(isNaN(s))return'0★';
-  if(s===0)return'0★';
+  if(isNaN(s)||s===0)return STAR_LABELS[1];
   const label=TIER_LABEL_MAP[d.color];
   if(!label)return STAR_LABELS[s]||s+'★';
   return label+' '+(STAR_LABELS[s]||s+'★');
@@ -3536,7 +3533,7 @@ function updatePlannerCurrentLevel(){
     el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>'+editBtn;
     return;
   }
-  const lvlStr=TIER_LABEL_MAP[oc]+(os===0?' 0★':' '+STAR_LABELS[os]);
+  const lvlStr=TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]);
   el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`+editBtn;
 }
 
@@ -4109,13 +4106,13 @@ function _refreshModalRarityHeader(displayRarity){
     (teamsStr?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-top:3px;line-height:1.5;">${teamsStr}</div>`:'');
 }
 function ascendToMythic(){
-  if(!confirm('Ascend to Mythic?\n\nThis resets their level to 0 stars and clears shards — your Legendary progress will be removed.'))return;
+  if(!confirm('Ascend to Mythic?\n\nThis resets their level to White 1★ and clears shards — your Legendary progress will be removed.'))return;
   document.getElementById('cm-rarity-select').value='Mythic';
   document.getElementById('cm-color').value='white';
-  document.getElementById('cm-star').value='0';
+  document.getElementById('cm-star').value='1';
   document.getElementById('cm-shards').value='0';
   buildColorPicker('cmColorPicker','cm-color',true,'white');
-  buildStarPicker('cmStarPicker','cm-star',0,'white');
+  buildStarPicker('cmStarPicker','cm-star',1,'white');
   const sp=document.getElementById('cmStarPicker');
   if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
   updateDualRarityUI();_refreshModalRarityHeader('Mythic');updateCMLevelLabel();autoSaveChamp();
