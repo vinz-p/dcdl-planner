@@ -1279,12 +1279,10 @@
     <div id="cm-paywall-badge" style="display:none;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--legendary);letter-spacing:1px;margin-bottom:8px;">⚠ PAYWALL — not obtainable via Anvil pulls</div>
     <!-- CONSUME BUTTONS -->
     <div id="cm-consume-btns" style="display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
-    <div class="champ-modal-row" id="cm-rarity-row" style="display:none;">
-      <div class="champ-modal-label">Rarity<small style="font-size:0.65rem;color:var(--text-dim);">Legendary base → upgradeable to Mythic</small></div>
-      <select id="cm-rarity-select" onchange="autoSaveChamp()" style="background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;padding:6px 10px;border-radius:4px;outline:none;">
-        <option value="Legendary">Legendary</option>
-        <option value="Mythic">Mythic (upgraded)</option>
-      </select>
+    <div class="champ-modal-row" id="cm-rarity-row" style="display:none;flex-direction:column;gap:8px;">
+      <div class="champ-modal-label">Ascension <small style="font-size:0.65rem;color:var(--text-dim);">Legendary Red 5★ → Mythic</small></div>
+      <input type="hidden" id="cm-rarity-select" value="Legendary">
+      <div id="cm-ascension-ui"></div>
     </div>
     <div class="champ-modal-row" id="cm-shards-row">
       <div class="champ-modal-label">Shards Owned</div>
@@ -3382,7 +3380,7 @@ const CHAMPIONS=[
   {id:'mera',             name:'Mera',               rarity:'Legendary',      class:'Supporter',  power:'Physical',   teams:['Atlanteans','Energy Wielder','Justice League']},
   {id:'red_hood',         name:'Red Hood',           rarity:'Legendary',      class:'Firepower',  power:'Physical',   teams:['League of Assassins','Weapon Master','Bat Family'], dualRarity:true},
   {id:'vixen',            name:'Vixen',              rarity:'Legendary',      class:'Supporter',  power:'Physical',   teams:['Birds of Prey','Metahuman']},
-  {id:'wonder_woman',     name:'Wonder Woman',       rarity:'Legendary',      class:'Guardian',   power:'Physical',   teams:['Justice League','Metahuman','Justice League Dark']},
+  {id:'wonder_woman',     name:'Wonder Woman',       rarity:'Legendary',      class:'Guardian',   power:'Physical',   teams:['Justice League','Metahuman','Justice League Dark'], dualRarity:true},
   // Iconic
   {id:'batman_dm',        name:'Batman Death Metal', rarity:'Iconic',         class:'Magical',    power:'Spiritual',  teams:['Death Metal','Bat Family','Energy Wielder'], paywall:true},
   {id:'wonder_woman_dm',  name:'WW Death Metal',     rarity:'Iconic',         class:'Warrior',    power:'Physical',   teams:['Death Metal','Amazons','Metahuman'], paywall:true},
@@ -3992,6 +3990,7 @@ function openChampModal(id){
       rarityRow.style.display='flex';
       const saved = (champData[id]||{}).rarity||'Legendary';
       raritySelect.value = saved;
+      updateDualRarityUI();
     } else {
       rarityRow.style.display='none';
     }
@@ -4086,6 +4085,45 @@ function cmConsumeShards(newLevelKey,prevConsumed,totalOwned){
   updateCMLevelLabel();
 }
 function stepCM(d){const el=document.getElementById('cm-shards');el.value=Math.max(0,(parseInt(el.value)||0)+d);renderCMConsumeButtons();autoSaveChamp();}
+function updateDualRarityUI(){
+  const ui=document.getElementById('cm-ascension-ui');
+  if(!ui)return;
+  const rarity=(document.getElementById('cm-rarity-select')||{}).value||'Legendary';
+  const isMythic=rarity==='Mythic';
+  ui.innerHTML=isMythic
+    ?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="color:var(--mythic);font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:1px;">✦ MYTHIC</span>
+        <button class="danger-btn" onclick="revertToLegendary()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);font-size:0.7rem;">&#8629; Revert to Legendary</button>
+      </div>`
+    :`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="color:var(--legendary);font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:1px;">LEGENDARY</span>
+        <button class="danger-btn" onclick="ascendToMythic()" style="border-color:var(--mythic-dim);color:var(--mythic);font-size:0.7rem;">&#11014; Ascend to Mythic</button>
+      </div>`;
+}
+function ascendToMythic(){
+  if(!confirm('Ascend to Mythic?\n\nThis resets their level to 0 stars and clears shards — your Legendary progress will be removed.'))return;
+  document.getElementById('cm-rarity-select').value='Mythic';
+  document.getElementById('cm-color').value='none';
+  document.getElementById('cm-star').value='0';
+  document.getElementById('cm-shards').value='0';
+  buildColorPicker('cmColorPicker','cm-color',true,'none');
+  buildStarPicker('cmStarPicker','cm-star',0,'none');
+  const sp=document.getElementById('cmStarPicker');
+  if(sp){sp.style.opacity='0.3';sp.style.pointerEvents='none';}
+  updateDualRarityUI();updateCMLevelLabel();autoSaveChamp();
+}
+function revertToLegendary(){
+  if(!confirm('Revert to Legendary?\n\nThis resets them to Red 5★ and clears any Mythic progress.'))return;
+  document.getElementById('cm-rarity-select').value='Legendary';
+  document.getElementById('cm-color').value='red';
+  document.getElementById('cm-star').value='5';
+  document.getElementById('cm-shards').value='0';
+  buildColorPicker('cmColorPicker','cm-color',true,'red');
+  buildStarPicker('cmStarPicker','cm-star',5,'red');
+  const sp=document.getElementById('cmStarPicker');
+  if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
+  updateDualRarityUI();updateCMLevelLabel();autoSaveChamp();
+}
 function autoSaveChamp(){
   if(!cmChampId)return;
   const mc=document.getElementById('cm-color').value;
