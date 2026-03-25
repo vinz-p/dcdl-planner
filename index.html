@@ -529,9 +529,9 @@
     letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
   .hist-sum-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);
     font-family:'Share Tech Mono',monospace;font-size:0.72rem;}
-  .cc-wish-btn{position:absolute;bottom:28px;right:5px;background:none;border:none;
-    cursor:pointer;font-size:0.9rem;color:rgba(255,255,255,0.18);padding:2px;z-index:2;
-    line-height:1;transition:color 0.15s;}
+  .cc-wish-btn{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.55);border:none;
+    cursor:pointer;font-size:0.8rem;color:rgba(255,255,255,0.35);padding:2px 4px;z-index:2;
+    line-height:1;transition:color 0.15s;border-radius:3px;}
   .cc-wish-btn:hover{color:var(--legendary);}
   .cc-wish-btn.active{color:#facc15;}
   .tp-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
@@ -1238,6 +1238,7 @@
         <button class="coll-sort" id="sort-name" onclick="setCollSort('name',this)">Name</button>
         <button class="coll-sort" id="sort-progress" onclick="setCollSort('progress',this)">Level</button>
         <button class="coll-sort" id="sort-shards" onclick="setCollSort('shards',this)">Shards</button>
+        <button class="coll-sort" id="sort-next" onclick="setCollSort('next',this)">Next Lvl</button>
         <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
         <button class="coll-sort" id="sort-asc" onclick="setCollDir('asc',this)" title="Ascending">↑</button>
         <button class="coll-sort active" id="sort-desc" onclick="setCollDir('desc',this)" title="Descending">↓</button>
@@ -3813,6 +3814,20 @@ function renderCollection(keepOpenPanelId){
       const sb=parseInt((champData[b.id]||{}).shards)||0;
       return dir*(sa-sb)||a.name.localeCompare(b.name);
     });
+  } else if(collSort==='next'){
+    // Sort by shards still needed for next level (ascending = closest to leveling)
+    function _nextGap(champId){
+      const dd=champData[champId]||{};
+      const k=dd.color&&dd.color!=='none'?(dd.color+'-'+(parseInt(dd.star)||0)):null;
+      if(!k)return Infinity;
+      const idx=TIERS_ALL.indexOf(k);
+      if(idx<0||idx>=TIERS_ALL.length-1)return Infinity;
+      const con=(STAR_TABLE[k]||{s:0}).s;
+      const sh=parseInt(dd.shards)||0;
+      return (STAR_TABLE[TIERS_ALL[idx+1]]||{s:0}).s - con - sh;
+    }
+    // Invert dir so default descending = closest to next level first
+    list.sort((a,b)=>-dir*(_nextGap(a.id)-_nextGap(b.id))||a.name.localeCompare(b.name));
   }
 
   const owned=CHAMPIONS.filter(c=>champStatus(c.id)!=='not-owned').length;
@@ -3852,9 +3867,11 @@ function renderCollection(keepOpenPanelId){
     const hue=c.name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
     const avatarBg=`hsl(${Math.abs(hue)%360},40%,22%)`;
     const paywallBadge=c.paywall?'<div class="cc-paywall-badge">$</div>':'';
+    const isWishlisted=!!(champData[c.id]||{}).wishlist;
+    const wishBtn=`<button class="cc-wish-btn${isWishlisted?' active':''}" onclick="event.stopPropagation();toggleWishlist('${c.id}')" title="${isWishlisted?'Remove from wishlist':'Add to wishlist'}">${isWishlisted?'&#9733;':'&#9734;'}</button>`;
     const imgHtml=imgSrc
-      ?`<div class="cc-img-wrap">${paywallBadge}<img class="cc-img" src="${imgSrc}" alt="${c.name}"></div>`
-      :`<div class="cc-img-wrap">${paywallBadge}<div class="cc-img-fallback" style="background:${avatarBg};">${initials}</div></div>`;
+      ?`<div class="cc-img-wrap">${paywallBadge}${wishBtn}<img class="cc-img" src="${imgSrc}" alt="${c.name}"></div>`
+      :`<div class="cc-img-wrap">${paywallBadge}${wishBtn}<div class="cc-img-fallback" style="background:${avatarBg};">${initials}</div></div>`;
 
     let badge='',cardClass='coll-card';
     if(s==='maxed'){badge='<div class="cc-badge maxed-b">MAX</div>';cardClass+=' maxed';}
@@ -3867,6 +3884,9 @@ function renderCollection(keepOpenPanelId){
     const key=d.color&&d.color!=='none'?(d.color+'-'+(parseInt(d.star)||0)):null;
     const consumed=key?(STAR_TABLE[key]||{s:0}).s:0;
     const totalShards=consumed+shards;
+    const curIdx=key?TIERS_ALL.indexOf(key):-1;
+    const nextKey=curIdx>=0&&curIdx<TIERS_ALL.length-1?TIERS_ALL[curIdx+1]:null;
+    const nextCost=nextKey?(STAR_TABLE[nextKey].s-consumed):null;
     const showLabel=totalShards>0&&s!=='not-owned';
 
     // Build segments: each color tier spans its shard range
@@ -3918,20 +3938,18 @@ function renderCollection(keepOpenPanelId){
     const hoverBorder=RARITY_BORDER[c.rarity]||'rgba(255,255,255,0.4)';
     const hoverGlow=s!=='not-owned'?(RARITY_GLOW[c.rarity]||'none').replace('0.28','0.45').replace('0.18','0.35'):'0 4px 14px rgba(79,195,247,0.15)';
 
-    const isWishlisted=!!(champData[c.id]||{}).wishlist;
-    const wishBtn=`<button class="cc-wish-btn${isWishlisted?' active':''}" onclick="event.stopPropagation();toggleWishlist('${c.id}')" title="${isWishlisted?'Remove from wishlist':'Add to wishlist'}">${isWishlisted?'&#9733;':'&#9734;'}</button>`;
     return `<div class="${cardClass}" style="border-color:${baseBorder};box-shadow:${baseGlow};"
       onmouseenter="this.style.outline='1.5px solid ${hoverBorder}';this.style.outlineOffset='-1px';this.style.boxShadow='${hoverGlow}';this.style.transform='translateY(-3px)'"
       onmouseleave="this.style.outline='';this.style.boxShadow='${baseGlow}';this.style.transform=''"
       onclick="openChampModal('${c.id}')">
       <div class="cc-rarity-strip" style="background:${rarityStrip};opacity:${s==='not-owned'?'0.35':'1'};"></div>
-      ${wishBtn}${badge}${imgHtml}
+      ${badge}${imgHtml}
       <div class="cc-info">
         <div class="cc-name">${c.name}</div>
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.rarity||''}</div>
         <div class="cc-status" style="margin-top:3px;display:flex;justify-content:space-between;align-items:baseline;gap:2px;">
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${s!=='not-owned'?'color:'+tierColor((champData[c.id]||{}).color||'white'):''}">${champLevelStr(c.id)}</span>
-          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${shards}s</span>`:''}
+          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${nextCost!==null?shards+'/'+nextCost:shards}s</span>`:''}
         </div>
       </div>
       ${progHtml}
