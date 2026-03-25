@@ -1279,10 +1279,7 @@
     <div id="cm-paywall-badge" style="display:none;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--legendary);letter-spacing:1px;margin-bottom:8px;">⚠ PAYWALL — not obtainable via Anvil pulls</div>
     <!-- CONSUME BUTTONS -->
     <div id="cm-consume-btns" style="display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
-    <div id="cm-rarity-row" style="display:none;padding:4px 0;">
-      <input type="hidden" id="cm-rarity-select" value="Legendary">
-      <div id="cm-ascension-ui" style="text-align:left;"></div>
-    </div>
+    <input type="hidden" id="cm-rarity-select" value="Legendary">
     <div class="champ-modal-row" id="cm-shards-row">
       <div class="champ-modal-label">Shards Owned</div>
       <div class="number-input">
@@ -1292,8 +1289,9 @@
         <button class="btn-step-5" onclick="stepCM(5)">+5</button>
       </div>
     </div>
-    <div class="champ-modal-actions">
+    <div class="champ-modal-actions" style="display:flex;justify-content:space-between;align-items:center;">
       <button class="cmb clr" id="cm-clear-btn" onclick="clearChamp()">Clear Data</button>
+      <div id="cm-ascension-ui" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -3983,17 +3981,16 @@ function openChampModal(id){
   const mSrc=CHAMP_IMGS[id]||'';const modalImgEl=document.getElementById('champ-modal-portrait');
   if(modalImgEl){if(mSrc){modalImgEl.src=mSrc;modalImgEl.style.display='block';}else{modalImgEl.style.display='none';}}
   // Rarity toggle for dual-rarity champions (Legendary/Mythic upgrade)
-  const rarityRow = document.getElementById('cm-rarity-row');
   const raritySelect = document.getElementById('cm-rarity-select');
-  if(rarityRow && raritySelect){
+  const ascensionUi = document.getElementById('cm-ascension-ui');
+  if(raritySelect){
     if(c && c.dualRarity){
-      rarityRow.style.display='flex';
       const saved = (champData[id]||{}).rarity||'Legendary';
       raritySelect.value = saved;
       updateDualRarityUI();
       _refreshModalRarityHeader(saved);
     } else {
-      rarityRow.style.display='none';
+      if(ascensionUi) ascensionUi.style.display='none';
     }
   }
   // Paywall badge
@@ -4091,6 +4088,7 @@ function updateDualRarityUI(){
   if(!ui)return;
   const rarity=(document.getElementById('cm-rarity-select')||{}).value||'Legendary';
   const isMythic=rarity==='Mythic';
+  ui.style.display='block';
   ui.innerHTML=isMythic
     ?`<button class="danger-btn" onclick="revertToLegendary()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);font-size:0.7rem;">&#8629; Revert to Legendary</button>`
     :`<button class="danger-btn" onclick="ascendToMythic()" style="border-color:var(--mythic-dim);color:var(--mythic);font-size:0.7rem;">&#11014; Ascend to Mythic</button>`;
