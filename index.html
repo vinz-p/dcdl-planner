@@ -3791,7 +3791,9 @@ function renderCollection(keepOpenPanelId){
     list.sort((a,b)=>-dir*a.name.localeCompare(b.name));
   } else if(collSort==='rarity'){
     list.sort((a,b)=>{
-      const rd=(RARITY_RANK[a.rarity]??9)-(RARITY_RANK[b.rarity]??9);
+      const ra=(a.dualRarity&&champData[a.id]&&champData[a.id].rarity)?champData[a.id].rarity:a.rarity;
+      const rb=(b.dualRarity&&champData[b.id]&&champData[b.id].rarity)?champData[b.id].rarity:b.rarity;
+      const rd=(RARITY_RANK[ra]??9)-(RARITY_RANK[rb]??9);
       return (collDir==='asc'?-1:1)*(rd!==0?rd:a.name.localeCompare(b.name));
     });
   } else if(collSort==='progress'){
