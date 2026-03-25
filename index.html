@@ -4110,13 +4110,13 @@ function _refreshModalRarityHeader(displayRarity){
 function ascendToMythic(){
   if(!confirm('Ascend to Mythic?\n\nThis resets their level to 0 stars and clears shards — your Legendary progress will be removed.'))return;
   document.getElementById('cm-rarity-select').value='Mythic';
-  document.getElementById('cm-color').value='none';
+  document.getElementById('cm-color').value='white';
   document.getElementById('cm-star').value='0';
   document.getElementById('cm-shards').value='0';
-  buildColorPicker('cmColorPicker','cm-color',true,'none');
-  buildStarPicker('cmStarPicker','cm-star',0,'none');
+  buildColorPicker('cmColorPicker','cm-color',true,'white');
+  buildStarPicker('cmStarPicker','cm-star',0,'white');
   const sp=document.getElementById('cmStarPicker');
-  if(sp){sp.style.opacity='0.3';sp.style.pointerEvents='none';}
+  if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
   updateDualRarityUI();_refreshModalRarityHeader('Mythic');updateCMLevelLabel();autoSaveChamp();
 }
 function revertToLegendary(){
