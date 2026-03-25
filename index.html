@@ -26,8 +26,9 @@
     --highlighted:#7986cb; /* indigo — mystical/magic */
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;overflow-x:hidden;}
-  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,195,247,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.04) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0;}
+  body{background:var(--bg) url('images/bg.jpg') center top / cover no-repeat fixed;color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:rgba(8,11,18,0.82);pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,195,247,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.04) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0;}
   .container{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:24px 16px;width:100%;}
   header{text-align:center;margin-bottom:32px;}
   .title-line{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:4px;}
@@ -2702,6 +2703,7 @@ function renderTeamTabs(){
       :'';
     const anvilLine=tCalc>0
       ?`<div class="tp-tab-anvils">`
+        +`<img src="${_B}anvil.png" style="width:10px;height:10px;object-fit:contain;opacity:0.6;vertical-align:middle;margin-right:3px;">`
         +`<span style="color:var(--accent);">${_fmtAnvils(tExp)}</span>`
         +`<span style="opacity:0.35;"> exp · </span>`
         +`<span style="color:var(--legendary);">${_fmtAnvils(tWC)}</span>`
@@ -2853,7 +2855,7 @@ function renderTeamSummary(){
         +`<div class="tp-total-item"><div class="tp-total-item-lbl">Worst Case</div>`
           +`<div class="tp-total-val" style="color:var(--legendary);">${totalWC.toLocaleString()}</div></div>`
       +`</div>`
-      +`<div style="font-family:'Share Tech Mono',monospace;font-size:0.48rem;color:var(--text-dim);">anvils</div>`
+      +`<div style="display:flex;align-items:center;gap:4px;"><img src="${_B}anvil.png" style="width:16px;height:16px;object-fit:contain;opacity:0.6;"><span style="font-family:'Share Tech Mono',monospace;font-size:0.48rem;color:var(--text-dim);">anvils</span></div>`
     +`</div>`
     :'';
   el.innerHTML=`<div class="tp-summary">`
@@ -3952,7 +3954,7 @@ function renderCollection(keepOpenPanelId){
         </div>
         <div class="cc-status" style="margin-top:3px;display:flex;justify-content:space-between;align-items:baseline;gap:2px;">
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${s!=='not-owned'?'color:'+tierColor((champData[c.id]||{}).color||'white'):''}">${champLevelStr(c.id)}</span>
-          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${nextCost!==null?shards+'/'+nextCost:shards}</span>`:''}
+          ${shards>0?`<span style="display:inline-flex;align-items:center;gap:2px;flex-shrink:0;"><img src="${_B}shard.png" style="width:10px;height:10px;object-fit:contain;"><span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);">${nextCost!==null?shards+'/'+nextCost:shards}</span></span>`:''}
         </div>
       </div>
       ${progHtml}
