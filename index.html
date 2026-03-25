@@ -1637,6 +1637,12 @@ function submitBatch(){
   const autoEarned=limitedEarned+hlResults.reduce((s,r)=>s+r.earned,0)+reResults.reduce((s,r)=>s+r.earned,0);
 
   const _bs=bannerStates[activeBannerIdx]||{};
+  // Build per-champion mythic breakdown for summary aggregation
+  const champBreakdown=[];
+  if(li>0&&limitedId) champBreakdown.push({id:limitedId,name:limitedName,type:'limited',pulls:li,shards:limitedEarned});
+  hlResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'highlighted',pulls:r.pulls,shards:r.earned}));
+  reResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'regular',pulls:r.pulls,shards:r.earned}));
+  if(mlp>0) champBreakdown.push({id:'__mlp__',name:'Mythic Legacy Piece',type:'regular',pulls:mlp,shards:0});
   history.unshift({
     id:Date.now(),batch:batchSize,
     bannerId:activeBannerIdx,
@@ -1647,6 +1653,7 @@ function submitBatch(){
     bonusName:limitedName,     // champion these bonus shards belong to
     autoShards:autoEarned,     // auto-calculated dupe shards
     counts:{limited:counts.limited,highlighted:counts.highlighted,regular:counts.regular,legendary:counts.legendary,epic:ep},
+    champBreakdown,
     ts:new Date().toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
   });
 
@@ -2562,7 +2569,37 @@ function renderHistorySummary(){
       <td style="color:var(--green);">${r.bonusShards>0?'+'+r.bonusShards:'—'}</td>
       <td style="color:var(--green);">${r.autoShards>0?'+'+r.autoShards:'—'}</td>
     </tr>`).join('')}</tbody>
-  </table></div>`;
+  </table></div>`+_renderChampBreakdown();
+}
+
+function _renderChampBreakdown(){
+  // Aggregate per-champion pulls across all history entries
+  const champMap={};
+  history.forEach(e=>{
+    (e.champBreakdown||[]).forEach(cb=>{
+      if(!champMap[cb.id])champMap[cb.id]={name:cb.name,type:cb.type,pulls:0,shards:0};
+      champMap[cb.id].pulls+=cb.pulls||0;
+      champMap[cb.id].shards+=cb.shards||0;
+    });
+  });
+  const champs=Object.values(champMap);
+  if(!champs.length)return'';
+  const TYPE_ORDER={limited:0,highlighted:1,regular:2};
+  const TYPE_LABEL={limited:'Limited',highlighted:'Highlighted',regular:'Regular'};
+  champs.sort((a,b)=>(TYPE_ORDER[a.type]??3)-(TYPE_ORDER[b.type]??3)||b.pulls-a.pulls);
+  return`<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">`+
+    `<div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;">Mythic Champions Pulled</div>`+
+    `<div style="overflow-x:auto;"><table class="hist-sum-table"><thead><tr>
+      <th>Champion</th><th>Type</th><th>Copies</th><th title="Dupe shards earned">Shards✦</th>
+    </tr></thead><tbody>${champs.map(c=>{
+      const typeColor=c.type==='limited'?'var(--mythic)':c.type==='highlighted'?'var(--mythic)':'#a78bfa';
+      return`<tr>
+        <td style="font-weight:600;">${c.name}</td>
+        <td style="color:${typeColor};font-size:0.72rem;">${TYPE_LABEL[c.type]||c.type}</td>
+        <td style="color:var(--text);">${c.pulls}</td>
+        <td style="color:var(--green);">${c.shards>0?'+'+c.shards:'—'}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div></div>`;
 }
 function exportHistoryCSV(){
   if(!history.length){alert('No history to export.');return;}
