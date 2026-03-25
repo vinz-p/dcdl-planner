@@ -877,6 +877,7 @@
     <button class="main-nav-btn active" onclick="switchSection('planner')" id="nav-planner">&#9654; Progress Planner</button>
     <button class="main-nav-btn" onclick="switchSection('banner')" id="nav-banner">&#9889; Bleed Banner</button>
     <button class="main-nav-btn" onclick="switchSection('collection')" id="nav-collection">&#9776; Collection</button>
+    <button class="main-nav-btn" onclick="switchSection('history');renderGlobalHistoryLog();" id="nav-history">&#9776; History</button>
   </nav>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -1177,7 +1178,7 @@
         </div>
         <div style="display:flex;gap:6px;">
           <button class="danger-btn" onclick="exportHistoryCSV()" style="border-color:var(--accent-dim);color:var(--accent);">Export CSV</button>
-          <button class="danger-btn" onclick="clearPullHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear History</button>
+          <button class="danger-btn" onclick="clearPullHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear Banner History</button>
           <button class="danger-btn" onclick="copyShareSummary()" id="share-btn" style="border-color:var(--accent-dim);color:var(--accent);background:rgba(79,195,247,0.06);">Copy Summary</button>
         </div>
       </div>
@@ -1247,6 +1248,30 @@
       <!-- Team/class summary header (shown when exactly 1 team active) -->
       <div id="team-filter-header" style="display:none;margin-bottom:10px;"></div>
       <div class="coll-grid" id="coll-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: CONSOLIDATED HISTORY                                       -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="main-section" id="section-history">
+    <div class="panel">
+      <div class="panel-title">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span>PULL HISTORY</span>
+          <button class="hist-view-tab ghv-tab active" id="ghv-log" onclick="setGlobalHistoryView('log',this)">Log</button>
+          <button class="hist-view-tab ghv-tab" id="ghv-summary" onclick="setGlobalHistoryView('summary',this)">Summary</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="danger-btn" onclick="exportGlobalHistoryCSV()" style="border-color:var(--accent-dim);color:var(--accent);">Export CSV</button>
+          <button class="danger-btn" id="gh-clear-btn" onclick="clearGlobalHistory()" style="border-color:var(--mythic-dim);color:var(--mythic);">Clear All History</button>
+        </div>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        All pulls from all banners · Clearing a banner log does not remove entries here
+      </div>
+      <div class="history-list" id="global-history-list"><div class="history-empty">No pulls logged yet</div></div>
+      <div id="global-history-summary" style="display:none;"></div>
     </div>
   </div>
 
@@ -1435,14 +1460,17 @@ function tierLabel(key){const[c,s]=key.split('-');const si=parseInt(s);return TI
 function tierConsumed(key){return key&&key!=='none'?(STAR_TABLE[key]||{s:0}).s:0;}
 
 let scenario='expected',nonLimMode='exact',batchSize=1;
-let history=[];
+let history=[];           // alias for bannerStates[activeBannerIdx].history — set after loadBannerState()
+let globalHistory=[];     // consolidated log — never cleared by banner reset
 let historyView='log';
+let globalHistoryView='log';
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
 function saveState(){
   if(window._initInProgress)return;
   try{
-    localStorage.setItem('mpc_history',JSON.stringify(history));
+    // history is now per-banner (saved in saveBannerState); save globalHistory separately
+    try{localStorage.setItem('mpc_globalHistory',JSON.stringify(globalHistory));}catch(e){}
     localStorage.setItem('mpc_ownedColor',document.getElementById('ownedColor').value);
     localStorage.setItem('mpc_ownedStar',document.getElementById('ownedStar').value);
     localStorage.setItem('mpc_targetColor',document.getElementById('targetColor').value);
@@ -1455,7 +1483,25 @@ function saveState(){
 }
 function loadState(){
   try{
-    const h=localStorage.getItem('mpc_history');if(h)history=JSON.parse(h);
+    const gh=localStorage.getItem('mpc_globalHistory');
+    if(gh) globalHistory=JSON.parse(gh);
+  }catch(e){}
+}
+function _migrateOldHistory(){
+  // Called after loadBannerState() so bannerStates is fully loaded
+  try{
+    const legacyH=localStorage.getItem('mpc_history');
+    if(legacyH){
+      const parsed=JSON.parse(legacyH);
+      if(parsed&&parsed.length){
+        if(!globalHistory.length) globalHistory=parsed.map(e=>({...e}));
+        if(!bannerStates[activeBannerIdx].history.length)
+          bannerStates[activeBannerIdx].history=parsed.map(e=>({...e}));
+        try{localStorage.setItem('mpc_globalHistory',JSON.stringify(globalHistory));}catch(e){}
+        localStorage.removeItem('mpc_history');
+        saveBannerState();
+      }
+    }
   }catch(e){}
 }
 function loadSettings(){
@@ -1643,7 +1689,7 @@ function submitBatch(){
   hlResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'highlighted',pulls:r.pulls,shards:r.earned}));
   reResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'regular',pulls:r.pulls,shards:r.earned}));
   if(mlp>0) champBreakdown.push({id:'__mlp__',name:'Mythic Legacy Piece',type:'regular',pulls:mlp,shards:0});
-  history.unshift({
+  const _newEntry={
     id:Date.now(),batch:batchSize,
     bannerId:activeBannerIdx,
     bannerName:_bs.name||`Banner ${activeBannerIdx+1}`,
@@ -1655,7 +1701,11 @@ function submitBatch(){
     counts:{limited:counts.limited,highlighted:counts.highlighted,regular:counts.regular,legendary:counts.legendary,epic:ep},
     champBreakdown,
     ts:new Date().toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
-  });
+  };
+  history.unshift(_newEntry);
+  globalHistory.unshift({..._newEntry});  // independent copy in consolidated log
+  try{localStorage.setItem('mpc_globalHistory',JSON.stringify(globalHistory));}catch(e){}
+  saveBannerState();
 
   // ── Update highlighted dot picker ───────────────────────────────────────────
   const nl=parseInt(document.getElementById('nonlimpulled').value)||0;
@@ -1704,8 +1754,9 @@ function renderHistory(){
 }
 
 function deleteEntry(id){
-  history=history.filter(e=>e.id!==id);
-  saveState();renderHistory();renderAudit();calculate();
+  const i=history.findIndex(e=>e.id===id);
+  if(i>=0) history.splice(i,1);
+  saveBannerState();saveState();renderHistory();renderAudit();calculate();
 }
 
 function clearPullHistory(){
@@ -1713,12 +1764,13 @@ function clearPullHistory(){
     const btn=document.querySelector('button[onclick="clearPullHistory()"]');
     window._clearHistConfirm=true;
     btn.textContent='Tap again to confirm';
-    setTimeout(()=>{window._clearHistConfirm=false;btn.textContent='Clear History';},3000);
+    setTimeout(()=>{window._clearHistConfirm=false;btn.textContent='Clear Banner History';},3000);
     return;
   }
   window._clearHistConfirm=false;
-  history=[];
-  saveState();renderHistory();renderAudit();calculate();
+  history.splice(0,history.length); // clear in-place to keep reference
+  saveBannerState();saveState();renderHistory();renderAudit();calculate();
+  // globalHistory is intentionally NOT cleared here
 }
 
 function clearHistory(){
@@ -1730,7 +1782,9 @@ function clearHistory(){
     return;
   }
   window._clearConfirm=false;
-  history=[];
+  history.splice(0,history.length);
+  globalHistory.splice(0,globalHistory.length);
+  try{localStorage.removeItem('mpc_globalHistory');}catch(e){}
   document.getElementById('shards').value=0;
   document.getElementById('ownedColor').value='none';
   document.getElementById('ownedStar').value=1;
@@ -2513,14 +2567,16 @@ function setHistoryView(v,btn){
   if(v==='summary')renderHistorySummary();
 }
 let summaryGroupBy='banner'; // 'banner' | 'limited'
-function renderHistorySummary(){
-  const el=document.getElementById('history-summary');
+function renderHistorySummary(data,elId){
+  if(!data) data=history;
+  if(!elId) elId='history-summary';
+  const el=document.getElementById(elId);
   if(!el)return;
-  if(!history.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
+  if(!data.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
 
   // Build aggregated rows
   const map={};
-  history.forEach(e=>{
+  data.forEach(e=>{
     const c=e.counts||{};
     const ep=c.epic!=null?c.epic:Math.max(0,(e.batch||0)-(c.limited||0)-(c.highlighted||0)-(c.regular||0)-(c.legendary||0));
     const key=summaryGroupBy==='banner'?(e.bannerName||`Banner ${(e.bannerId??0)+1}`):(e.limitedName||e.bonusName||'Unknown');
@@ -2543,8 +2599,8 @@ function renderHistorySummary(){
   el.innerHTML=
     `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
       <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">GROUP BY:</span>
-      <button class="coll-sort${byBannerActive?' active':''}" onclick="summaryGroupBy='banner';renderHistorySummary()">Banner</button>
-      <button class="coll-sort${!byBannerActive?' active':''}" onclick="summaryGroupBy='limited';renderHistorySummary()">Limited Champion</button>
+      <button class="coll-sort${byBannerActive?' active':''}" onclick="summaryGroupBy='banner';renderHistorySummary(${data===globalHistory?'globalHistory':'null'},'${elId}')">Banner</button>
+      <button class="coll-sort${!byBannerActive?' active':''}" onclick="summaryGroupBy='limited';renderHistorySummary(${data===globalHistory?'globalHistory':'null'},'${elId}')">Limited Champion</button>
     </div>`+
     `<div style="overflow-x:auto;"><table class="hist-sum-table">
     <thead><tr>
@@ -2569,13 +2625,13 @@ function renderHistorySummary(){
       <td style="color:var(--green);">${r.bonusShards>0?'+'+r.bonusShards:'—'}</td>
       <td style="color:var(--green);">${r.autoShards>0?'+'+r.autoShards:'—'}</td>
     </tr>`).join('')}</tbody>
-  </table></div>`+_renderChampBreakdown();
+  </table></div>`+_renderChampBreakdown(data);
 }
 
-function _renderChampBreakdown(){
-  // Aggregate per-champion pulls across all history entries
+function _renderChampBreakdown(data){
+  if(!data) data=history;
   const champMap={};
-  history.forEach(e=>{
+  data.forEach(e=>{
     (e.champBreakdown||[]).forEach(cb=>{
       if(!champMap[cb.id])champMap[cb.id]={name:cb.name,type:cb.type,pulls:0,shards:0};
       champMap[cb.id].pulls+=cb.pulls||0;
@@ -2601,10 +2657,10 @@ function _renderChampBreakdown(){
       </tr>`;
     }).join('')}</tbody></table></div></div>`;
 }
-function exportHistoryCSV(){
-  if(!history.length){alert('No history to export.');return;}
+function _historyToCSV(data,filename){
+  if(!data.length){alert('No history to export.');return;}
   const hdr=['Date','Banner','LimitedChamp','Pulls','Limited','Highlighted','Regular','Legendary','Epic','BonusShards','AutoShards'];
-  const rows=history.map(e=>{
+  const rows=data.map(e=>{
     const c=e.counts||{};
     const ep=c.epic!=null?c.epic:Math.max(0,(e.batch||0)-(c.limited||0)-(c.highlighted||0)-(c.regular||0)-(c.legendary||0));
     return[
@@ -2617,8 +2673,55 @@ function exportHistoryCSV(){
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='dcdl-pulls.csv';a.click();
+  a.href=url;a.download=filename;a.click();
   URL.revokeObjectURL(url);
+}
+function exportHistoryCSV(){ _historyToCSV(history,'dcdl-banner-pulls.csv'); }
+function exportGlobalHistoryCSV(){ _historyToCSV(globalHistory,'dcdl-all-pulls.csv'); }
+
+// ── GLOBAL HISTORY UI ─────────────────────────────────────────────────────
+function setGlobalHistoryView(v,btn){
+  globalHistoryView=v;
+  document.querySelectorAll('.ghv-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const listEl=document.getElementById('global-history-list');
+  const sumEl=document.getElementById('global-history-summary');
+  if(listEl)listEl.style.display=v==='log'?'':'none';
+  if(sumEl)sumEl.style.display=v==='summary'?'':'none';
+  if(v==='summary')renderHistorySummary(globalHistory,'global-history-summary');
+  else renderGlobalHistoryLog();
+}
+function renderGlobalHistoryLog(){
+  const el=document.getElementById('global-history-list');
+  if(!el)return;
+  if(!globalHistory.length){el.innerHTML='<div class="history-empty">No pulls logged yet</div>';return;}
+  el.innerHTML=globalHistory.map(e=>{
+    const bonusS=e.shards||0;
+    const bannerTag=e.bannerName?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-right:6px;">[${e.bannerName}]</span>`:'';
+    let shardsHtml='';
+    if(bonusS>0){const nameStr=(e.bonusName&&e.bonusName!=='Limited')?` (${e.bonusName})`:'';shardsHtml=`<div class="hi-shards">+${bonusS} bonus${nameStr}</div>`;}
+    return `<div class="history-item">
+      <div class="hi-batch">×${e.batch}</div>
+      <div class="hi-pulls">${bannerTag}${e.desc||'(no pulls)'}</div>
+      ${shardsHtml}
+      <div style="font-size:0.58rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;white-space:nowrap;">${e.ts||''}</div>
+    </div>`;
+  }).join('');
+}
+function clearGlobalHistory(){
+  const btn=document.getElementById('gh-clear-btn');
+  if(!window._clearGHConfirm){
+    window._clearGHConfirm=true;
+    if(btn)btn.textContent='Tap again to confirm';
+    setTimeout(()=>{window._clearGHConfirm=false;if(btn)btn.textContent='Clear All History';},3000);
+    return;
+  }
+  window._clearGHConfirm=false;
+  globalHistory.splice(0,globalHistory.length);
+  try{localStorage.removeItem('mpc_globalHistory');}catch(e){}
+  if(btn)btn.textContent='Clear All History';
+  renderGlobalHistoryLog();
+  renderHistorySummary(globalHistory,'global-history-summary');
 }
 
 // ── WISHLIST ───────────────────────────────────────────────────────────────
@@ -3503,6 +3606,7 @@ function switchSection(id){
   document.querySelectorAll('.main-section').forEach(s=>s.classList.toggle('active',s.id==='section-'+id));
   document.querySelectorAll('.main-nav-btn').forEach(b=>b.classList.toggle('active',b.id==='nav-'+id));
   if(id==='collection') renderCollection();
+  if(id==='history'){renderGlobalHistoryLog();if(globalHistoryView==='summary')renderHistorySummary(globalHistory,'global-history-summary');}
   try{localStorage.setItem('mpc_section',id);}catch(e){}
 }
 
@@ -4268,8 +4372,8 @@ const CHAMP_META = CHAMPIONS.map(c=>({
 // Banner state: two banners A and B, active index
 let activeBannerIdx = 0;
 let bannerStates = [
-  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact'},
-  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact'}
+  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact', history:[]},
+  {limited:null, hl:[null,null,null], nl:0, nlMode:'exact', history:[]}
 ];
 // Alias for all existing code that reads/writes bannerState
 Object.defineProperty(window, 'bannerState', {
@@ -4286,8 +4390,8 @@ function loadBannerState(){
       const p=JSON.parse(d);
       bannerStates=p.states||bannerStates;
       activeBannerIdx=p.active||0;
-      // ensure nl/nlMode fields exist on loaded states
-      bannerStates.forEach(b=>{ if(b.nl==null)b.nl=0; if(!b.nlMode)b.nlMode='exact'; });
+      // ensure required fields exist on loaded states
+      bannerStates.forEach(b=>{ if(b.nl==null)b.nl=0; if(!b.nlMode)b.nlMode='exact'; if(!b.history)b.history=[]; });
     } else {
       // legacy migration: single banner + separate nonlim keys
       const old=localStorage.getItem('mpc_banner');
@@ -4304,6 +4408,9 @@ function saveBannerState(){
   try{localStorage.setItem('mpc_banners',JSON.stringify({states:bannerStates,active:activeBannerIdx}));}catch(e){}
 }
 loadBannerState();
+// Point history at the active banner's array so all existing code works unchanged
+history = bannerStates[activeBannerIdx].history;
+_migrateOldHistory();
 
 function _syncNlFromBanner(){
   const b=bannerStates[activeBannerIdx];
@@ -4338,14 +4445,18 @@ function _syncBannerTabs(){
 
 function switchBanner(idx){
   activeBannerIdx=idx;
+  history=bannerStates[activeBannerIdx].history;
   saveBannerState();
   _syncBannerTabs();
   _syncNlFromBanner();
   renderAllBannerSlots();
+  renderHistory();renderAudit();
 }
 
 function resetActiveBanner(){
-  bannerStates[activeBannerIdx]={limited:null,hl:[null,null,null],nl:0,nlMode:'exact'};
+  const existingHistory=bannerStates[activeBannerIdx].history||[];
+  bannerStates[activeBannerIdx]={limited:null,hl:[null,null,null],nl:0,nlMode:'exact',history:existingHistory};
+  history=bannerStates[activeBannerIdx].history;
   saveBannerState();
   _syncBannerTabs();
   _syncNlFromBanner();
