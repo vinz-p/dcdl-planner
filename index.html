@@ -4091,14 +4091,21 @@ function updateDualRarityUI(){
   const rarity=(document.getElementById('cm-rarity-select')||{}).value||'Legendary';
   const isMythic=rarity==='Mythic';
   ui.innerHTML=isMythic
-    ?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="color:var(--mythic);font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:1px;">✦ MYTHIC</span>
-        <button class="danger-btn" onclick="revertToLegendary()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);font-size:0.7rem;">&#8629; Revert to Legendary</button>
-      </div>`
-    :`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="color:var(--legendary);font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:1px;">LEGENDARY</span>
-        <button class="danger-btn" onclick="ascendToMythic()" style="border-color:var(--mythic-dim);color:var(--mythic);font-size:0.7rem;">&#11014; Ascend to Mythic</button>
-      </div>`;
+    ?`<button class="danger-btn" onclick="revertToLegendary()" style="border-color:rgba(240,165,0,0.4);color:var(--legendary);font-size:0.7rem;">&#8629; Revert to Legendary</button>`
+    :`<button class="danger-btn" onclick="ascendToMythic()" style="border-color:var(--mythic-dim);color:var(--mythic);font-size:0.7rem;">&#11014; Ascend to Mythic</button>`;
+}
+function _refreshModalRarityHeader(displayRarity){
+  const metaEl=document.getElementById('champ-modal-meta');
+  if(!metaEl||!cmChampId)return;
+  const c=CHAMPIONS.find(x=>x.id===cmChampId);
+  if(!c)return;
+  const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
+  const rc=RARITY_COLOR[displayRarity]||'var(--text-dim)';
+  const teamsStr=(c.teams&&c.teams.length)?c.teams.join(' · '):'';
+  metaEl.innerHTML=
+    `<div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;font-weight:700;color:${rc};letter-spacing:1px;">${displayRarity}${c.class?' · '+c.class:''}</div>`+
+    (c.power?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-dim);margin-top:2px;">${c.power}</div>`:'')+
+    (teamsStr?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-top:3px;line-height:1.5;">${teamsStr}</div>`:'');
 }
 function ascendToMythic(){
   if(!confirm('Ascend to Mythic?\n\nThis resets their level to 0 stars and clears shards — your Legendary progress will be removed.'))return;
@@ -4110,7 +4117,7 @@ function ascendToMythic(){
   buildStarPicker('cmStarPicker','cm-star',0,'none');
   const sp=document.getElementById('cmStarPicker');
   if(sp){sp.style.opacity='0.3';sp.style.pointerEvents='none';}
-  updateDualRarityUI();updateCMLevelLabel();autoSaveChamp();
+  updateDualRarityUI();_refreshModalRarityHeader('Mythic');updateCMLevelLabel();autoSaveChamp();
 }
 function revertToLegendary(){
   if(!confirm('Revert to Legendary?\n\nThis resets them to Red 5★ and clears any Mythic progress.'))return;
@@ -4122,7 +4129,7 @@ function revertToLegendary(){
   buildStarPicker('cmStarPicker','cm-star',5,'red');
   const sp=document.getElementById('cmStarPicker');
   if(sp){sp.style.opacity='1';sp.style.pointerEvents='';}
-  updateDualRarityUI();updateCMLevelLabel();autoSaveChamp();
+  updateDualRarityUI();_refreshModalRarityHeader('Legendary');updateCMLevelLabel();autoSaveChamp();
 }
 function autoSaveChamp(){
   if(!cmChampId)return;
