@@ -3946,10 +3946,13 @@ function renderCollection(keepOpenPanelId){
       ${badge}${imgHtml}
       <div class="cc-info">
         <div class="cc-name">${c.name}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.rarity||''}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;font-weight:700;color:${s==='not-owned'?'rgba('+rarityCol.replace('var(--mythic)','212,43,43').replace('var(--legendary)','240,165,0')+',0.45)':rarityCol};letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${c.rarity||''}</div>
+          ${CLASS_ICONS[c.class]?`<img src="${CLASS_ICONS[c.class]}" title="${c.class}" style="width:12px;height:12px;object-fit:contain;opacity:${s==='not-owned'?'0.3':'0.7'};flex-shrink:0;">`:''}
+        </div>
         <div class="cc-status" style="margin-top:3px;display:flex;justify-content:space-between;align-items:baseline;gap:2px;">
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${s!=='not-owned'?'color:'+tierColor((champData[c.id]||{}).color||'white'):''}">${champLevelStr(c.id)}</span>
-          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${nextCost!==null?shards+'/'+nextCost:shards}s</span>`:''}
+          ${shards>0?`<span style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:var(--green);flex-shrink:0;">${nextCost!==null?shards+'/'+nextCost:shards}</span>`:''}
         </div>
       </div>
       ${progHtml}
