@@ -1620,6 +1620,7 @@ function submitBatch(){
   const limitedMeta=limitedId?CHAMP_META.find(c=>c.id===limitedId):null;
   const limitedName=limitedMeta?limitedMeta.name:'Limited';
   let limitedEarned=0;
+  let limitedWasNew=false;
   if(li>0){
     const hasFirst=oc!=='none'||curShards>0;
     limitedEarned=hasFirst?li*40:(li>1?(li-1)*40:0);
@@ -1628,6 +1629,7 @@ function submitBatch(){
     if(limitedId){
       const existing=champData[limitedId]||{color:'none',star:'1',shards:0};
       const alreadyOwned=existing.color&&existing.color!=='none';
+      limitedWasNew=!alreadyOwned;
       champData[limitedId]={...existing,
         color:alreadyOwned?existing.color:'white',
         star:alreadyOwned?existing.star:0,
@@ -1661,7 +1663,7 @@ function submitBatch(){
   // ── Build rich history description ──────────────────────────────────────────
   const parts=[];
   if(li>0){
-    const newTag=limitedEarned===0&&li===1?'<span style="font-size:0.75em;opacity:0.7;"> (unlock)</span>':'';
+    const newTag=limitedWasNew?'<span style="font-size:0.75em;opacity:0.7;"> (unlock)</span>':'';
     const shardsTag=limitedEarned>0?`<span style="color:var(--green);font-size:0.78em;"> +${limitedEarned}✦</span>`:'';
     parts.push(`<span style="color:var(--mythic)">${li}× ${limitedName}${newTag}${shardsTag}</span>`);
   }
@@ -1692,7 +1694,7 @@ function submitBatch(){
   const _newEntry={
     id:Date.now(),batch:batchSize,
     bannerId:activeBannerIdx,
-    bannerName:_bs.name||`Banner ${activeBannerIdx+1}`,
+    bannerName:_bs.name||limitedName||`Banner ${activeBannerIdx+1}`,
     limitedId,limitedName,
     desc:parts.join(', '),
     shards:bonusShards,        // manual bonus shards
