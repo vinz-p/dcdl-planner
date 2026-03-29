@@ -2958,9 +2958,12 @@ function renderTeamSummary(){
     const name=champ?champ.name:'?';
     const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const hue=name.split('').reduce((h,ch)=>((h<<5)-h)+ch.charCodeAt(0),0)&360;
+    const _classIconHtml=champ&&CLASS_ICONS[champ.class]
+      ?`<img src="${CLASS_ICONS[champ.class]}" title="${champ.class}" style="position:absolute;bottom:4px;right:4px;width:14px;height:14px;object-fit:contain;opacity:0.85;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.9));">`
+      :'';
     const portrait=imgSrc
-      ?`<div class="tp-slot-img-wrap"><img class="tp-slot-img" src="${imgSrc}"></div>`
-      :`<div class="tp-slot-img-wrap"><div class="tp-slot-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);">${initials}</div></div>`;
+      ?`<div class="tp-slot-img-wrap" style="position:relative;"><img class="tp-slot-img" src="${imgSrc}">${_classIconHtml}</div>`
+      :`<div class="tp-slot-img-wrap" style="position:relative;"><div class="tp-slot-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);">${initials}</div>${_classIconHtml}</div>`;
     const lvl=champLevelStr(entry.id);
     const d=champData[entry.id];
     const lvlColor=d&&d.color&&d.color!=='none'?tierColor(d.color):'var(--text-dim)';
@@ -4653,9 +4656,12 @@ function _pullChampCard(id, inputId, type, sub){
     :`<div class="pull-card-portrait pull-card-fallback" style="background:hsl(${Math.abs(hue)%360},40%,22%);"><span style="font-family:'Oswald',sans-serif;font-size:1.1rem;color:rgba(255,255,255,0.4);">${initials}</span></div>`;
   // Match Bleed Banner border styles exactly
   const cardClass = type==='limited' ? 'pull-card pull-card-limited' : 'pull-card pull-card-highlighted';
+  const _pcClassIcon=meta&&CLASS_ICONS[meta.class]
+    ?`<img src="${CLASS_ICONS[meta.class]}" title="${meta.class}" style="width:11px;height:11px;object-fit:contain;opacity:0.7;vertical-align:middle;margin-right:4px;flex-shrink:0;">`
+    :'';
   return `<div class="${cardClass}">
     ${portrait}
-    <div class="pull-card-name" style="color:var(--mythic);">${name}</div>
+    <div class="pull-card-name" style="color:var(--mythic);display:flex;align-items:center;justify-content:center;">${_pcClassIcon}${name}</div>
     <div class="pull-card-sub">${sub}</div>
     <div class="pull-card-counter">
       <button class="pull-card-btn" onclick="stepLog('${inputId}',-1)">−</button>
