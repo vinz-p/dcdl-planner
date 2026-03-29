@@ -1623,18 +1623,19 @@ function submitBatch(){
   let limitedEarned=0;
   let limitedWasNew=false;
   if(li>0){
-    const hasFirst=oc!=='none'||curShards>0;
+    // Use the champion's actual collection state, not the planner's owned-level inputs
+    const limExisting=limitedId?(champData[limitedId]||{color:'none',star:0,shards:0}):{color:'none',star:0,shards:0};
+    const alreadyOwned=!!(limExisting.color&&limExisting.color!=='none');
+    limitedWasNew=!alreadyOwned;
+    const hasFirst=alreadyOwned||(parseInt(limExisting.shards)||0)>0;
     limitedEarned=hasFirst?li*40:(li>1?(li-1)*40:0);
     newShards+=limitedEarned;
     // Accrue to limited champion's collection record
     if(limitedId){
-      const existing=champData[limitedId]||{color:'none',star:'1',shards:0};
-      const alreadyOwned=existing.color&&existing.color!=='none';
-      limitedWasNew=!alreadyOwned;
-      champData[limitedId]={...existing,
-        color:alreadyOwned?existing.color:'white',
-        star:alreadyOwned?existing.star:0,
-        shards:(parseInt(existing.shards)||0)+limitedEarned};
+      champData[limitedId]={...limExisting,
+        color:alreadyOwned?limExisting.color:'white',
+        star:alreadyOwned?limExisting.star:0,
+        shards:(parseInt(limExisting.shards)||0)+limitedEarned};
       saveChampData();
     }
   }
