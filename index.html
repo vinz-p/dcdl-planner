@@ -2293,9 +2293,12 @@ function calcReverse(){
   const anvils=Math.max(0,parseInt(document.getElementById('reverse-anvils').value)||0);
   const resultsEl=document.getElementById('reverse-reach');
   if(anvils===0){if(resultsEl)resultsEl.innerHTML='';return;}
-  const oc=document.getElementById('ownedColor').value;
-  const os=parseInt(document.getElementById('ownedStar').value);
-  const ownedShards=Math.max(0,parseInt(document.getElementById('shards').value)||0);
+  // Use limited champion's actual collection state instead of planner inputs
+  const limitedId=bannerState?bannerState.limited:null;
+  const limData=limitedId?(champData[limitedId]||{}):{};
+  const oc=(limData.color&&limData.color!=='none')?limData.color:'none';
+  const os=parseInt(limData.star)||0;
+  const ownedShards=Math.max(0,parseInt(limData.shards)||0);
   const alreadyNL=Math.max(0,parseInt(document.getElementById('nonlimpulled').value)||0);
   const mythicsSinceLimited=0;
   const hasFirst=(oc!=='none'||ownedShards>0);
