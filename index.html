@@ -2645,7 +2645,7 @@ function _renderChampBreakdown(data){
   });
   champs.sort((a,b)=>(RARITY_SORT[a.rarity]??5)-(RARITY_SORT[b.rarity]??5)||b.pulls-a.pulls);
   return`<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">`+
-    `<div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;">Mythic Champions Pulled</div>`+
+    `<div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;">Detailed Pull Breakdown</div>`+
     `<div style="overflow-x:auto;"><table class="hist-sum-table"><thead><tr>
       <th>Champion</th><th>Rarity</th><th class="num">Copies</th><th class="num" title="Dupe shards earned">Shards✦</th>
     </tr></thead><tbody>${champs.map(c=>{
