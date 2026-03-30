@@ -2573,7 +2573,6 @@ function setHistoryView(v,btn){
   if(sumEl)sumEl.style.display=v==='summary'?'':'none';
   if(v==='summary')renderHistorySummary();
 }
-let summaryGroupBy='banner'; // 'banner' | 'limited'
 function renderHistorySummary(data,elId){
   if(!data) data=history;
   if(!elId) elId='history-summary';
@@ -2586,7 +2585,7 @@ function renderHistorySummary(data,elId){
   data.forEach(e=>{
     const c=e.counts||{};
     const ep=c.epic!=null?c.epic:Math.max(0,(e.batch||0)-(c.limited||0)-(c.highlighted||0)-(c.regular||0)-(c.legendary||0));
-    const key=summaryGroupBy==='banner'?(e.bannerName||`Banner ${(e.bannerId??0)+1}`):(e.limitedName||e.bonusName||'Unknown');
+    const key=e.limitedName||e.bannerName||e.bonusName||'Unknown';
     if(!map[key])map[key]={name:key,pulls:0,entries:0,limited:0,highlighted:0,regular:0,legendary:0,epic:0,bonusShards:0,autoShards:0};
     const r=map[key];
     r.pulls+=e.batch||0;
@@ -2601,25 +2600,16 @@ function renderHistorySummary(data,elId){
   });
   const rows=Object.values(map).sort((a,b)=>b.pulls-a.pulls);
 
-  const groupLabel=summaryGroupBy==='banner'?'Banner':'Limited Champion';
-  const byBannerActive=summaryGroupBy==='banner';
   el.innerHTML=
-    `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
-      <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">GROUP BY:</span>
-      <button class="coll-sort${byBannerActive?' active':''}" onclick="summaryGroupBy='banner';renderHistorySummary(${data===globalHistory?'globalHistory':'null'},'${elId}')">Banner</button>
-      <button class="coll-sort${!byBannerActive?' active':''}" onclick="summaryGroupBy='limited';renderHistorySummary(${data===globalHistory?'globalHistory':'null'},'${elId}')">Limited Champion</button>
-    </div>`+
     `<div style="overflow-x:auto;"><table class="hist-sum-table">
     <thead><tr>
-      <th>${groupLabel}</th>
+      <th>Limited Champion</th>
       <th title="Total pulls logged">Pulls</th>
       <th title="Limited champion copies">Lim</th>
       <th title="Highlighted mythic copies">HL</th>
       <th title="Regular mythic copies">Reg</th>
       <th title="Legendary pulls">Leg</th>
       <th title="Epic pulls">Epic</th>
-      <th title="Manually entered bonus shards">+Shards</th>
-      <th title="Auto-earned dupe shards">+Dupes✦</th>
     </tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td style="font-weight:600;">${r.name}</td>
@@ -2629,8 +2619,6 @@ function renderHistorySummary(data,elId){
       <td style="color:var(--mythic);">${r.regular||'—'}</td>
       <td style="color:var(--legendary);">${r.legendary||'—'}</td>
       <td style="color:#9b8ee0;">${r.epic||'—'}</td>
-      <td style="color:var(--green);">${r.bonusShards>0?'+'+r.bonusShards:'—'}</td>
-      <td style="color:var(--green);">${r.autoShards>0?'+'+r.autoShards:'—'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`+_renderChampBreakdown(data);
 }
