@@ -1690,11 +1690,10 @@ function submitBatch(){
   const _bs=bannerStates[activeBannerIdx]||{};
   // Build per-champion mythic breakdown for summary aggregation
   const champBreakdown=[];
-  const _rarity=id=>{const m=CHAMP_META.find(c=>c.id===id);return m?m.rarity:'Mythic';};
-  if(li>0&&limitedId) champBreakdown.push({id:limitedId,name:limitedName,rarity:_rarity(limitedId),type:'limited',pulls:li,shards:limitedEarned});
-  hlResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,rarity:_rarity(r.id),type:'highlighted',pulls:r.pulls,shards:r.earned}));
-  reResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,rarity:_rarity(r.id),type:'regular',pulls:r.pulls,shards:r.earned}));
-  if(mlp>0) champBreakdown.push({id:'__mlp__',name:'Mythic Legacy Piece',rarity:'Mythic',type:'regular',pulls:mlp,shards:0});
+  if(li>0&&limitedId) champBreakdown.push({id:limitedId,name:limitedName,type:'limited',pulls:li,shards:limitedEarned});
+  hlResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'highlighted',pulls:r.pulls,shards:r.earned}));
+  reResults.forEach(r=>champBreakdown.push({id:r.id,name:r.name,type:'regular',pulls:r.pulls,shards:r.earned}));
+  if(mlp>0) champBreakdown.push({id:'__mlp__',name:'Mythic Legacy Piece',type:'regular',pulls:mlp,shards:0});
   const _newEntry={
     id:Date.now(),batch:batchSize,
     bannerId:activeBannerIdx,
@@ -2630,7 +2629,7 @@ function _renderChampBreakdown(data){
   const champMap={};
   data.forEach(e=>{
     (e.champBreakdown||[]).forEach(cb=>{
-      if(!champMap[cb.id])champMap[cb.id]={name:cb.name,type:cb.type,rarity:cb.rarity||null,pulls:0,shards:0};
+      if(!champMap[cb.id])champMap[cb.id]={name:cb.name,type:cb.type,pulls:0,shards:0};
       champMap[cb.id].pulls+=cb.pulls||0;
       champMap[cb.id].shards+=cb.shards||0;
     });
@@ -2639,9 +2638,9 @@ function _renderChampBreakdown(data){
   if(!champs.length)return'';
   const RARITY_SORT={'Limited Mythic':0,'Mythic':1,'Legendary':2,'Iconic':3,'Epic':4};
   const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
-  // Rarity is baked into entries; fall back to CHAMP_META lookup for old entries without it
   champs.forEach(c=>{
-    if(!c.rarity){const meta=CHAMP_META.find(m=>m.id===c.id);c.rarity=meta?meta.rarity:'Mythic';}
+    const champ=CHAMPIONS.find(ch=>ch.id===c.id);
+    c.rarity=champ?champ.rarity:'Mythic';
   });
   champs.sort((a,b)=>(RARITY_SORT[a.rarity]??5)-(RARITY_SORT[b.rarity]??5)||b.pulls-a.pulls);
   return`<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">`+
