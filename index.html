@@ -530,6 +530,7 @@
     letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
   .hist-sum-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);
     font-family:'Share Tech Mono',monospace;font-size:0.72rem;}
+  .hist-sum-table th.num,.hist-sum-table td.num{text-align:center;}
   .cc-wish-btn{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.55);border:none;
     cursor:pointer;font-size:0.8rem;color:rgba(255,255,255,0.35);padding:2px 4px;z-index:2;
     line-height:1;transition:color 0.15s;border-radius:3px;}
@@ -2603,22 +2604,22 @@ function renderHistorySummary(data,elId){
   el.innerHTML=
     `<div style="overflow-x:auto;"><table class="hist-sum-table">
     <thead><tr>
-      <th>Limited Champion</th>
-      <th title="Total pulls logged">Pulls</th>
-      <th title="Limited champion copies">Lim</th>
-      <th title="Highlighted mythic copies">HL</th>
-      <th title="Regular mythic copies">Reg</th>
-      <th title="Legendary pulls">Leg</th>
-      <th title="Epic pulls">Epic</th>
+      <th>Banner Pull Summary</th>
+      <th class="num" title="Total pulls logged">Pulls</th>
+      <th class="num" title="Limited champion copies">Lim</th>
+      <th class="num" title="Highlighted mythic copies">HL</th>
+      <th class="num" title="Regular mythic copies">Reg</th>
+      <th class="num" title="Legendary pulls">Leg</th>
+      <th class="num" title="Epic pulls">Epic</th>
     </tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td style="font-weight:600;">${r.name}</td>
-      <td style="color:var(--text);">${r.pulls}</td>
-      <td style="color:var(--mythic);">${r.limited||'—'}</td>
-      <td style="color:var(--mythic);">${r.highlighted||'—'}</td>
-      <td style="color:var(--mythic);">${r.regular||'—'}</td>
-      <td style="color:var(--legendary);">${r.legendary||'—'}</td>
-      <td style="color:#9b8ee0;">${r.epic||'—'}</td>
+      <td class="num" style="color:var(--text);">${r.pulls}</td>
+      <td class="num" style="color:var(--mythic);">${r.limited||'—'}</td>
+      <td class="num" style="color:var(--mythic);">${r.highlighted||'—'}</td>
+      <td class="num" style="color:var(--mythic);">${r.regular||'—'}</td>
+      <td class="num" style="color:var(--legendary);">${r.legendary||'—'}</td>
+      <td class="num" style="color:#9b8ee0;">${r.epic||'—'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`+_renderChampBreakdown(data);
 }
@@ -2646,15 +2647,15 @@ function _renderChampBreakdown(data){
   return`<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">`+
     `<div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;">Mythic Champions Pulled</div>`+
     `<div style="overflow-x:auto;"><table class="hist-sum-table"><thead><tr>
-      <th>Champion</th><th>Rarity</th><th>Copies</th><th title="Dupe shards earned">Shards✦</th>
+      <th>Champion</th><th>Rarity</th><th class="num">Copies</th><th class="num" title="Dupe shards earned">Shards✦</th>
     </tr></thead><tbody>${champs.map(c=>{
       const rarityColor=RARITY_COLOR[c.rarity]||'var(--text-dim)';
       const label=c.id==='__mlp__'?'Legacy Piece':c.rarity;
       return`<tr>
         <td style="font-weight:600;">${c.name}</td>
         <td style="color:${rarityColor};font-size:0.72rem;">${label}</td>
-        <td style="color:var(--text);">${c.pulls}</td>
-        <td style="color:var(--green);">${c.shards>0?'+'+c.shards:'—'}</td>
+        <td class="num" style="color:var(--text);">${c.pulls}</td>
+        <td class="num" style="color:var(--green);">${c.shards>0?'+'+c.shards:'—'}</td>
       </tr>`;
     }).join('')}</tbody></table></div></div>`;
 }
