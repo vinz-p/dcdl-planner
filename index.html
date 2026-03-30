@@ -2635,18 +2635,24 @@ function _renderChampBreakdown(data){
   });
   const champs=Object.values(champMap);
   if(!champs.length)return'';
-  const TYPE_ORDER={limited:0,highlighted:1,regular:2};
-  const TYPE_LABEL={limited:'Limited',highlighted:'Highlighted',regular:'Regular'};
-  champs.sort((a,b)=>(TYPE_ORDER[a.type]??3)-(TYPE_ORDER[b.type]??3)||b.pulls-a.pulls);
+  // Sort: Limited Mythic first, then Mythic, then others; then by pull count
+  const RARITY_SORT={'Limited Mythic':0,'Mythic':1,'Legendary':2,'Iconic':3,'Epic':4};
+  const RARITY_COLOR={'Limited Mythic':'var(--mythic)','Mythic':'var(--mythic)','Legendary':'var(--legendary)','Iconic':'#c084fc','Epic':'#9b8ee0'};
+  champs.forEach(c=>{
+    const meta=CHAMP_META.find(m=>m.id===c.id);
+    c.rarity=meta?meta.rarity:(c.id==='__mlp__'?'Mythic':'Mythic');
+  });
+  champs.sort((a,b)=>(RARITY_SORT[a.rarity]??5)-(RARITY_SORT[b.rarity]??5)||b.pulls-a.pulls);
   return`<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);">`+
     `<div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;">Mythic Champions Pulled</div>`+
     `<div style="overflow-x:auto;"><table class="hist-sum-table"><thead><tr>
-      <th>Champion</th><th>Type</th><th>Copies</th><th title="Dupe shards earned">Shards✦</th>
+      <th>Champion</th><th>Rarity</th><th>Copies</th><th title="Dupe shards earned">Shards✦</th>
     </tr></thead><tbody>${champs.map(c=>{
-      const typeColor=c.type==='limited'?'var(--mythic)':c.type==='highlighted'?'var(--mythic)':'#a78bfa';
+      const rarityColor=RARITY_COLOR[c.rarity]||'var(--text-dim)';
+      const label=c.id==='__mlp__'?'Legacy Piece':c.rarity;
       return`<tr>
         <td style="font-weight:600;">${c.name}</td>
-        <td style="color:${typeColor};font-size:0.72rem;">${TYPE_LABEL[c.type]||c.type}</td>
+        <td style="color:${rarityColor};font-size:0.72rem;">${label}</td>
         <td style="color:var(--text);">${c.pulls}</td>
         <td style="color:var(--green);">${c.shards>0?'+'+c.shards:'—'}</td>
       </tr>`;
