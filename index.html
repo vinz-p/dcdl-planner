@@ -2629,7 +2629,7 @@ function _renderChampBreakdown(data){
   const champMap={};
   data.forEach(e=>{
     (e.champBreakdown||[]).forEach(cb=>{
-      if(!champMap[cb.id])champMap[cb.id]={name:cb.name,type:cb.type,pulls:0,shards:0};
+      if(!champMap[cb.id])champMap[cb.id]={id:cb.id,name:cb.name,type:cb.type,pulls:0,shards:0};
       champMap[cb.id].pulls+=cb.pulls||0;
       champMap[cb.id].shards+=cb.shards||0;
     });
