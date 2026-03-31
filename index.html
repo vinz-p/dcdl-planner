@@ -1600,7 +1600,7 @@ function submitBatch(){
   function applyPullsToChamp(champId, pulls, shardsPer){
     if(!pulls||!champId)return{earned:0,wasNew:false};
     if(CHAMPIONS.findIndex(c=>c.id===champId)<0)return{earned:0,wasNew:false};
-    const existing=champData[champId]||{color:'none',star:'1',shards:0};
+    const existing=champData[champId]||{color:'none',star:0,shards:0};
     const alreadyOwned=existing.color&&existing.color!=='none';
     const wasNew=!alreadyOwned;
     const dupeShards=alreadyOwned?pulls*shardsPer:(pulls>1?(pulls-1)*shardsPer:0);
@@ -1811,7 +1811,7 @@ function copyShareSummary(){
   const tc=document.getElementById('targetColor').value;
   const ts=parseInt(document.getElementById('targetStar').value)||1;
   const shards=parseInt(document.getElementById('shards').value)||0;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[os]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const tEntry=STAR_TABLE[tc+'-'+ts];
   const oEntry=oc==='none'?null:STAR_TABLE[oc+'-'+os];
@@ -1876,14 +1876,14 @@ function buildColorPicker(containerId,hiddenId,includeNone,defaultVal){
   });
 }
 
-function buildStarPicker(containerId,hiddenId,defaultVal,colorVal){
+function buildStarPicker(containerId,hiddenId,defaultVal,colorVal,minStar=1){
   const container=document.getElementById(containerId);
   container.innerHTML='';
+  container.dataset.minStar=minStar;
   const isNoneColor=colorVal==='none';
-  const minStar=1;
-  for(let i=minStar;i<=5;i++){
+  for(let i=1;i<=5;i++){
     const s=document.createElement('span');
-    const isActive=!isNoneColor&&i<=Math.max(1,defaultVal);
+    const isActive=!isNoneColor&&i<=defaultVal;
     s.className='sp-star'+(isActive?' active':'');
     s.textContent='★';
     s.style.color=STAR_COLORS[colorVal]||'#eab308';
@@ -1904,7 +1904,7 @@ function hoverStar(cId,val){
   });
 }
 function unhoverStar(cId,hId){
-  const cur=Math.max(1,parseInt(document.getElementById(hId).value)||1);
+  const cur=parseInt(document.getElementById(hId).value)||0;
   document.getElementById(cId).querySelectorAll('.sp-star').forEach((s,idx)=>{
     const starVal=idx+1;
     const lit=starVal<=cur;
@@ -1957,7 +1957,11 @@ const _origSetStar_base=function(hiddenId,containerId,val){
   calculate();
 };
 function setStar(hiddenId,containerId,val){
-  _origSetStar_base(hiddenId,containerId,val);
+  const cur=parseInt(document.getElementById(hiddenId).value)||0;
+  const container=document.getElementById(containerId);
+  const minStar=parseInt(container&&container.dataset.minStar)||1;
+  const newVal=cur===val?minStar:val;
+  _origSetStar_base(hiddenId,containerId,newVal);
   if(hiddenId==='cm-star')updateCMLevelLabel();
 }
 
@@ -2173,7 +2177,7 @@ function updateProgressBar(earned,target){
   const os=parseInt((document.getElementById('ownedStar')||{}).value)||0;
   const tc=(document.getElementById('targetColor')||{}).value||'red';
   const ts=parseInt((document.getElementById('targetStar')||{}).value)||1;
-  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]));
+  const fromLabel=oc==='none'?'None':(TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[os]));
   const toLabel=TIER_LABEL_MAP[tc]+' '+STAR_LABELS[ts];
   const fromColor=oc==='none'?'var(--text-dim)':tierColor(oc);
   const toColor=tierColor(tc);
@@ -3613,7 +3617,8 @@ function champLevelStr(id){
   const d=champData[id];
   if(!d||!d.color||d.color==='none')return'Not owned';
   const s=parseInt(String(d.star).trim());
-  if(isNaN(s)||s===0)return STAR_LABELS[1];
+  if(isNaN(s))return STAR_LABELS[1];
+  if(s===0){const label=TIER_LABEL_MAP[d.color];return label?label+' '+STAR_LABELS[0]:STAR_LABELS[0];}
   const label=TIER_LABEL_MAP[d.color];
   if(!label)return STAR_LABELS[s]||s+'★';
   return label+' '+(STAR_LABELS[s]||s+'★');
@@ -3734,7 +3739,7 @@ function updatePlannerCurrentLevel(){
     el.innerHTML='<span style="color:var(--text-dim);">Not owned</span>'+editBtn;
     return;
   }
-  const lvlStr=TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[Math.max(1,os)]);
+  const lvlStr=TIER_LABEL_MAP[oc]+(' '+STAR_LABELS[os]);
   el.innerHTML=`<span style="color:${tierColor(oc)};">${lvlStr}</span>`+editBtn;
 }
 
@@ -4160,7 +4165,7 @@ function renderCollection(keepOpenPanelId){
 
 function openChampModal(id){
   cmChampId=id;const c=CHAMPIONS.find(x=>x.id===id);
-  const d=champData[id]||{color:'none',star:1,shards:0};
+  const d=champData[id]||{color:'none',star:0,shards:0};
   document.getElementById('champ-modal-title').textContent=c.name;
   // Metadata strip
   const metaEl=document.getElementById('champ-modal-meta');
@@ -4174,9 +4179,9 @@ function openChampModal(id){
       (teamsStr?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--accent);margin-top:3px;line-height:1.5;">${teamsStr}</div>`:'');
   }
   document.getElementById('cm-shards').value=d.shards||0;
-  const mc=d.color||'none', ms=(d.star!=null&&d.star!=='')?parseInt(d.star):1;
+  const mc=d.color||'none', ms=(d.star!=null&&d.star!=='')?parseInt(d.star):0;
   document.getElementById('cm-color').value=mc;document.getElementById('cm-star').value=ms;
-  buildColorPicker('cmColorPicker','cm-color',true,mc);buildStarPicker('cmStarPicker','cm-star',ms,mc);
+  buildColorPicker('cmColorPicker','cm-color',true,mc);buildStarPicker('cmStarPicker','cm-star',ms,mc,0);
   const sp=document.getElementById('cmStarPicker');sp.style.opacity=mc==='none'?'0.3':'1';sp.style.pointerEvents=mc==='none'?'none':'';
   const mSrc=CHAMP_IMGS[id]||'';const modalImgEl=document.getElementById('champ-modal-portrait');
   if(modalImgEl){if(mSrc){modalImgEl.src=mSrc;modalImgEl.style.display='block';}else{modalImgEl.style.display='none';}}
